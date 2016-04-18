@@ -1,0 +1,6 @@
+[package]
+name = "endo"
+version = "0.1.0"
+authors = ["Luke Hoban <lukehoban@gmail.com>"]
+
+[dependencies]
