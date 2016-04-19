@@ -11,31 +11,46 @@ enum PItem {
     Close
 }
 
-impl fmt::Debug for PItem {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &PItem::Base(c) => write!(f, "{:?}", c),
-            &PItem::Skip(n) => write!(f, "!{:?}", n),
-            &PItem::Search(ref s) => write!(f, "?{:?}", s),
-            &PItem::Open => write!(f, "("),
-            &PItem::Close => write!(f, ")") 
-        }
+fn pattern_to_string(pat: &Vec<PItem>) -> String {
+    pat.iter().map(|item| match item {
+        &PItem::Base(c) => format!("{}", c),
+        &PItem::Skip(n) => format!("!{}", n),
+        &PItem::Search(ref s) => format!("?{}", s),
+        &PItem::Open => "(".to_string(),
+        &PItem::Close => ")".to_string()
+    }).collect::<String>()
+}
+
+fn nat(chars: &mut Chars) -> Option<u64> {
+    match chars.next() {
+        Some('P') => Some(0),
+        Some('I') | Some('F') => nat(chars).map(|n| 2*n),
+        Some('C') => nat(chars).map(|n| 2*n + 1),
+        _ => None,
     }
 }
 
-fn nat(chars: &mut Chars) -> u64 {
-    34
-}
-
 fn consts(chars: &mut Chars) -> String {
-    "ICFP".to_string()
+    let mut ret = String::from(""); 
+    loop {
+        match chars.next() {
+            Some('C') => ret.push('I'),
+            Some('F') => ret.push('C'),
+            Some('P') => ret.push('F'),
+            Some('I') => match chars.next() {
+                Some('C') => ret.push('P'),
+                _ => return ret.to_string()
+            },
+            _ => return ret.to_string()
+        }
+    }
 }
 
 fn pattern(dna: &str) -> Option<(&str, Vec<PItem>)> {
     let mut chars = dna.chars();
     let mut rna = Vec::new();
     let mut p = Vec::new();
-    let mut dna = dna;
+    let mut lvl = 0;
     loop {
         match chars.next() {
             Some('C') => p.push(PItem::Base('I')),
@@ -43,11 +58,28 @@ fn pattern(dna: &str) -> Option<(&str, Vec<PItem>)> {
             Some('P') => p.push(PItem::Base('F')),
             Some('I') => match chars.next() {
                 Some('C') => p.push(PItem::Base('P')),
-                Some('P') => p.push(PItem::Skip(nat(&mut chars))),
-                Some('F') => p.push(PItem::Search(consts(&mut chars))),
+                Some('P') => match nat(&mut chars) {
+                    Some(n) => p.push(PItem::Skip(n)),     
+                    None => return None
+                },
+                Some('F') => {
+                    chars.next(); // three bases consumed!
+                    let s = consts(&mut chars);
+                    p.push(PItem::Search(s));
+                },
                 Some('I') => match chars.next() {
-                    Some('P') => panic!("nyi"),
-                    Some('C') | Some('F') => return Some((dna, p)),
+                    Some('P') => {
+                        lvl = lvl + 1;
+                        p.push(PItem::Open);
+                    },
+                    Some('C') | Some('F') => {
+                        if lvl == 0 {
+                            return Some((chars.as_str(), p)); 
+                        } else {
+                            lvl = lvl - 1;
+                            p.push(PItem::Close); 
+                        }
+                    },
                     Some('I') => rna.push(chars.by_ref().take(7).collect::<String>()),
                     _ => return None
                 },
@@ -64,13 +96,31 @@ fn pattern(dna: &str) -> Option<(&str, Vec<PItem>)> {
 
 // fn math_replace(p: String, t: String) -> Option
 
+fn dna_to_string(dna: &str) -> String {
+   let mut s = dna.chars().take(10).collect::<String>();
+   if(dna.len() > 10) {
+       s = s + "...";
+   }
+   s = s + " (" + &dna.len().to_string() + " bases)";
+   s
+}
 
 fn execute(dna: &str) -> Vec<String> {
+    let mut dna = dna;
     let rna = Vec::new();
+    let mut iteration = 0;
     loop {
+        iteration = iteration + 1;
+        println!("");
+        println!("iteration = {}", iteration);
+        println!("dna = {}", dna_to_string(dna));
         match pattern(dna) {
             None => return rna,
-            Some((dna, p)) => println!("Pattern: {:?}", p) 
+            Some((dna2, p)) => {
+                println!("pattern  {}", pattern_to_string(&p));
+                dna = dna2;
+                
+            } 
         }
         // let (t, dna) = template(dna);
         // match_replace(p, t)
@@ -83,7 +133,7 @@ fn main() {
     let _ = f.read_to_string(&mut s); 
     
     println!("Endo bytes: {}", s.len());
-    println!("Endo: {}", s.chars().take(10).collect::<String>());
+    println!("Endo: {}", dna_to_string(&s));
     
     let rna = execute(s.as_str());
     
@@ -92,5 +142,4 @@ fn main() {
     let mut chars = s.chars();
     let _ = chars.next();
     let rest = chars.as_str();
-    //println!("{}", rest)
 }
