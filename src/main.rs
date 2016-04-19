@@ -1,6 +1,7 @@
 use std::io::prelude::*;
 use std::fs::File;
 use std::str::Chars;
+use std::fmt;
 
 enum PItem {
     Base(char),
@@ -8,6 +9,18 @@ enum PItem {
     Search(String),
     Open,
     Close
+}
+
+impl fmt::Debug for PItem {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            &PItem::Base(c) => write!(f, "{:?}", c),
+            &PItem::Skip(n) => write!(f, "!{:?}", n),
+            &PItem::Search(ref s) => write!(f, "?{:?}", s),
+            &PItem::Open => write!(f, "("),
+            &PItem::Close => write!(f, ")") 
+        }
+    }
 }
 
 fn nat(chars: &mut Chars) -> u64 {
@@ -20,7 +33,7 @@ fn consts(chars: &mut Chars) -> String {
 
 fn pattern(dna: &str) -> Option<(&str, Vec<PItem>)> {
     let mut chars = dna.chars();
-    //let mut rna = Vec::new<PItem>();
+    let mut rna = Vec::new();
     let mut p = Vec::new();
     let mut dna = dna;
     loop {
@@ -35,8 +48,8 @@ fn pattern(dna: &str) -> Option<(&str, Vec<PItem>)> {
                 Some('I') => match chars.next() {
                     Some('P') => panic!("nyi"),
                     Some('C') | Some('F') => return Some((dna, p)),
-                    Some('I') => panic!("nyi"),
-                    _ => return None     
+                    Some('I') => rna.push(chars.by_ref().take(7).collect::<String>()),
+                    _ => return None
                 },
                 _ => return None
             },        
@@ -57,7 +70,7 @@ fn execute(dna: &str) -> Vec<String> {
     loop {
         match pattern(dna) {
             None => return rna,
-            Some((p, dna)) => println!("Pattern: {}", p) 
+            Some((dna, p)) => println!("Pattern: {:?}", p) 
         }
         // let (t, dna) = template(dna);
         // match_replace(p, t)
@@ -79,5 +92,5 @@ fn main() {
     let mut chars = s.chars();
     let _ = chars.next();
     let rest = chars.as_str();
-    println!("{}", rest)
+    //println!("{}", rest)
 }
