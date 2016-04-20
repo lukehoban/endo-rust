@@ -5,7 +5,7 @@ use std::fmt;
 
 enum PItem {
     Base(char),
-    Skip(u64),
+    Skip(usize),
     Search(String),
     Open,
     Close
@@ -13,8 +13,8 @@ enum PItem {
 
 enum TItem {
     Base(char),
-    Reference(u64, u64),
-    Length(u64)
+    Reference(usize, usize),
+    Length(usize)
 }
 
 fn pattern_to_string(pat: &Vec<PItem>) -> String {
@@ -39,9 +39,9 @@ fn template_to_string(templ: &Vec<TItem>) -> String {
     }).collect::<String>()
 }
 
-fn nat(chars: &mut Chars) -> Option<u64> {
+fn nat(chars: &mut Chars) -> Option<usize> {
     match chars.next() {
-        Some('P') => Some(0),
+        Some('P') => Some(0usize),
         Some('I') | Some('F') => nat(chars).map(|n| 2*n),
         Some('C') => nat(chars).map(|n| 2*n + 1),
         _ => None,
@@ -142,11 +142,61 @@ fn template(dna: &str) -> Option<(&str, Vec<String>, Vec<TItem>)> {
     }
 }
 
-// fn math_replace(p: String, t: String) -> Option
+fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: &str) -> Option<String> {
+    let mut i = 0usize;
+    let mut e = Vec::new();
+    let mut c = Vec::new();
+    for item in p {
+        match item {
+            PItem::Base(c) => match dna.bytes().nth(i) {
+                Some(ch) if (ch as u32) == (c as u32) => i = i + 1,
+                _ => return None
+            },
+            PItem::Skip(n) => {
+                i = i + n;
+                if i  > dna.len() {
+                    return None
+                }
+            },
+            PItem::Search(ref s) => panic!("nyi"),
+            PItem::Open => c.push(i),
+            PItem::Close => match c.pop()  {
+                Some(c0) => e.push(&dna[c0..i]),
+                None => return None
+            }
+        }
+    }
+    println!("succesful match of length {}", i);
+    for (i, captured) in e.iter().enumerate() {
+        println!("e[{}] = {}", i, dna_to_string(captured));
+    }
+    return Some(replace(t, e, &dna[i..]));
+}
+
+fn replace<'a>(t: Vec<TItem>, e: Vec<&'a str>, dna: &'a str) -> String {
+    let mut r = "".to_owned();
+    for item in t {
+         match item {
+             TItem::Base(c) => r.push(c),
+             TItem::Reference(n, l) => r.push_str(protect(l, e[n])),
+             TItem::Length(n) => panic!("nyi")
+         }
+    }
+    r.push_str(dna);
+    r
+}
+
+fn protect(l: usize, d: &str) -> &str {
+    if l == 0 {
+        d
+    } else {
+        panic!("nyi - protect")
+    }
+}
 
 fn dna_to_string(dna: &str) -> String {
    let mut s = dna.chars().take(10).collect::<String>();
-   if(dna.len() > 10) {
+   if dna.len() > 10 {
        s = s + "...";
    }
    s = s + " (" + &dna.len().to_string() + " bases)";
@@ -174,12 +224,15 @@ fn execute(dna: &str) -> Vec<String> {
                         println!("template {}", template_to_string(&t));
                         dna = dna3;
                         rna.extend(rna3.into_iter());
+                        match match_replace(p, t, dna) {
+                            Some(dna4) => dna = &dna4,
+                            Nonw => ()
+                        }
                     }
                 }
             } 
         }
-        // let (t, dna) = template(dna);
-        // match_replace(p, t)
+        
     }
 }
 
