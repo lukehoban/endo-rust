@@ -1,7 +1,47 @@
+extern crate xi_rope;
+
 use std::io::prelude::*;
 use std::fs::File;
 use std::str::Chars;
 use std::fmt;
+
+use xi_rope::{Rope, ChunkIter};
+
+struct RopeCharIter<'a> {
+    chunk_iter: ChunkIter<'a>,
+    char_iter: Option<Chars<'a>>,
+    index: usize
+}
+
+impl<'a> Iterator for RopeCharIter<'a> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<char> {
+        let next_char_iter = match self.char_iter {
+            Some(ref mut chars) => match chars.next() {
+                Some(c) => {
+                    self.index = self.index + 1;  
+                    return Some(c)
+                },
+                None => None
+            },
+            None => match self.chunk_iter.next() {
+                Some(next_chunk) => Some(next_chunk.chars()), 
+                None => return None
+            }
+        };
+        self.char_iter = next_char_iter;
+        self.next()
+    }
+}
+
+fn rope_char_iter(rope: &Rope) -> RopeCharIter {
+    RopeCharIter {
+        chunk_iter: rope.iter_chunks(),
+        char_iter: None,
+        index: 0
+    }    
+}
 
 enum PItem {
     Base(char),
@@ -39,7 +79,7 @@ fn template_to_string(templ: &Vec<TItem>) -> String {
     }).collect::<String>()
 }
 
-fn nat(chars: &mut Chars) -> Option<usize> {
+fn nat(chars: &mut RopeCharIter) -> Option<usize> {
     match chars.next() {
         Some('P') => Some(0usize),
         Some('I') | Some('F') => nat(chars).map(|n| 2*n),
@@ -48,7 +88,7 @@ fn nat(chars: &mut Chars) -> Option<usize> {
     }
 }
 
-fn consts(chars: &mut Chars) -> String {
+fn consts(chars: &mut RopeCharIter) -> String {
     let mut ret = String::from(""); 
     loop {
         match chars.next() {
@@ -64,8 +104,7 @@ fn consts(chars: &mut Chars) -> String {
     }
 }
 
-fn pattern(dna: &str) -> Option<(&str, Vec<String>, Vec<PItem>)> {
-    let mut chars = dna.chars();
+fn pattern(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<PItem>)> {
     let mut rna = Vec::new();
     let mut p = Vec::new();
     let mut lvl = 0;
@@ -92,13 +131,16 @@ fn pattern(dna: &str) -> Option<(&str, Vec<String>, Vec<PItem>)> {
                     },
                     Some('C') | Some('F') => {
                         if lvl == 0 {
-                            return Some((chars.as_str(), rna, p)); 
+                            return Some((rna, p)); 
                         } else {
                             lvl = lvl - 1;
                             p.push(PItem::Close); 
                         }
                     },
-                    Some('I') => rna.push(chars.by_ref().take(7).collect::<String>()),
+                    Some('I') => {
+                        rna.push(chars.take(7).collect::<String>());
+                        println!("rna.len() = {}", rna.len())
+                    },
                     _ => return None
                 },
                 _ => return None
@@ -108,8 +150,7 @@ fn pattern(dna: &str) -> Option<(&str, Vec<String>, Vec<PItem>)> {
     }
 }
 
-fn template(dna: &str) -> Option<(&str, Vec<String>, Vec<TItem>)> {
-    let mut chars = dna.chars();
+fn template(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
     let mut rna = Vec::new();
     let mut t = Vec::new();
     loop {
@@ -127,7 +168,7 @@ fn template(dna: &str) -> Option<(&str, Vec<String>, Vec<TItem>)> {
                     None => return None
                 },
                 Some('I') => match chars.next() {
-                    Some('C') | Some('F') => return Some((chars.as_str(), rna, t)),
+                    Some('C') | Some('F') => return Some((rna, t)),
                     Some('P') => match nat(&mut chars) {
                         Some(n) => t.push(TItem::Length(n)),
                         None => return None
@@ -168,7 +209,8 @@ fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: &str) -> Option<String> {
     }
     println!("succesful match of length {}", i);
     for (i, captured) in e.iter().enumerate() {
-        println!("e[{}] = {}", i, dna_to_string(captured));
+        let captured = Rope::from(captured);
+        println!("e[{}] = {}", i, dna_to_string(&captured));
     }
     return Some(replace(t, e, &dna[i..]));
 }
@@ -194,8 +236,8 @@ fn protect(l: usize, d: &str) -> &str {
     }
 }
 
-fn dna_to_string(dna: &str) -> String {
-   let mut s = dna.chars().take(10).collect::<String>();
+fn dna_to_string(dna: &Rope) -> String {
+   let mut s = rope_char_iter(dna).take(10).collect::<String>();
    if dna.len() > 10 {
        s = s + "...";
    }
@@ -203,36 +245,38 @@ fn dna_to_string(dna: &str) -> String {
    s
 }
 
-fn execute(dna: &str) -> Vec<String> {
-    let mut dna = dna;
+fn execute(mut dna: Rope) -> Vec<String> {
     let mut rna = Vec::new();
-    let mut iteration = 0;
+    let mut iteration = -1  ;
     loop {
         iteration = iteration + 1;
         println!("");
         println!("iteration = {}", iteration);
-        println!("dna = {}", dna_to_string(dna));
-        match pattern(dna) {
-            None => return rna,
-            Some((dna2, rna2, p)) => {
-                println!("pattern  {}", pattern_to_string(&p));
-                rna.extend(rna2.into_iter());
-                dna = dna2;
-                match template(dna) {
-                    None => return rna,
-                    Some((dna3, rna3, t)) => {
-                        println!("template {}", template_to_string(&t));
-                        dna = dna3;
-                        rna.extend(rna3.into_iter());
-                        match match_replace(p, t, dna) {
-                            Some(dna4) => dna = &dna4,
-                            Nonw => ()
-                        }
-                    }
-                }
-            } 
-        }
+        println!("dna = {}", dna_to_string(&dna));
+        let (p, t, index) = {
+            let mut chars = rope_char_iter(&dna);
+            let (rna2, p) = match pattern(&mut chars) {
+                None => return rna,
+                Some((rna2, p)) => (rna2, p)
+            };
+            println!("pattern  {}", pattern_to_string(&p));
+            rna.extend(rna2.into_iter());
+            let (rna3, t) = match template(&mut chars) {
+                None => return rna,
+                Some((rna3, t)) => (rna3, t)
+            };
+            println!("template {}", template_to_string(&t));
+            rna.extend(rna3.into_iter());
+            (p, t, chars.index)
+        };
         
+        println!("index = {}", index);
+        
+        let restdna = dna.clone().slice(index, dna.len());
+        dna = match match_replace(p, t, &String::from(&restdna)) {
+            Some(dna4) => Rope::from(&dna4),
+            None => continue 
+        } 
     }
 }
 
@@ -240,15 +284,25 @@ fn main() {
     let mut f = File::open("endo.dna").unwrap();
     let mut s = String::new();
     let _ = f.read_to_string(&mut s); 
+    let dna = Rope::from(&s);
+    
+    {
+    let mut iter = rope_char_iter(&dna);
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    if let Some(c) = iter.next() { println!("{}", c) };
+    }
     
     println!("Endo bytes: {}", s.len());
-    println!("Endo: {}", dna_to_string(&s));
+    println!("Endo: {}", dna_to_string(&dna));
     
-    let rna = execute(s.as_str());
-    
+    let rna = execute(dna);
+
     println!("RNAs: {}", rna.len());
-    
-    let mut chars = s.chars();
-    let _ = chars.next();
-    let rest = chars.as_str();
 }
