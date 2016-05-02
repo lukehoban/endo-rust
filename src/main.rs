@@ -295,19 +295,6 @@ fn main() {
     let _ = f.read_to_string(&mut s); 
     let dna = Rope::from(&s);
     
-    {
-    let mut iter = rope_char_iter(&dna);
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    if let Some(c) = iter.next() { println!("{}", c) };
-    }
-    
     println!("Endo bytes: {}", s.len());
     println!("Endo: {}", dna_to_string(&dna));
     
