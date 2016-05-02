@@ -3,7 +3,6 @@ extern crate xi_rope;
 use std::io::prelude::*;
 use std::fs::File;
 use std::str::Chars;
-use std::fmt;
 
 use xi_rope::{Rope, ChunkIter};
 
@@ -61,7 +60,7 @@ fn pattern_to_string(pat: &Vec<PItem>) -> String {
     pat.iter().map(|item| match item {
         &PItem::Base(c) => format!("{}", c),
         &PItem::Skip(n) => format!("!{}", n),
-        &PItem::Search(ref s) => format!("?{}", s),
+        &PItem::Search(ref s) => format!("?\"{}\"", s),
         &PItem::Open => "(".to_string(),
         &PItem::Close => ")".to_string()
     }).collect::<String>()
@@ -89,22 +88,35 @@ fn nat(chars: &mut RopeCharIter) -> Option<usize> {
 }
 
 fn consts(chars: &mut RopeCharIter) -> String {
-    let mut ret = String::from(""); 
+    let mut ret = String::from("");
+    // TODO: This doesn't work, since the peekable still 
+    // advances the underlying iterator too far.
+    // Also, need to be able to peek two ahead without 
+    // advancing the iterator.
+    // May have to make RopeCharIter multi peek.
+    let mut iter = chars.peekable();
     loop {
-        match chars.next() {
-            Some('C') => ret.push('I'),
-            Some('F') => ret.push('C'),
-            Some('P') => ret.push('F'),
-            Some('I') => match chars.next() {
-                Some('C') => ret.push('P'),
-                _ => return ret.to_string()
+        match iter.peek() {
+            Some(&'C') => { ret.push('I'); iter.next(); },
+            Some(&'F') => { ret.push('C'); iter.next(); },
+            Some(&'P') => { ret.push('F'); iter.next(); },
+            Some(&'I') => {
+                iter.next();
+                match iter.peek() {
+                    Some(&'C') => {
+                        iter.next();
+                        ret.push('P')
+                    },
+                    _ => return ret.to_string()
+                }
             },
             _ => return ret.to_string()
-        }
+        };
+        
     }
 }
 
-fn pattern(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<PItem>)> {
+fn pattern(chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<PItem>)> {
     let mut rna = Vec::new();
     let mut p = Vec::new();
     let mut lvl = 0;
@@ -115,13 +127,13 @@ fn pattern(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<PItem>)> {
             Some('P') => p.push(PItem::Base('F')),
             Some('I') => match chars.next() {
                 Some('C') => p.push(PItem::Base('P')),
-                Some('P') => match nat(&mut chars) {
+                Some('P') => match nat(chars) {
                     Some(n) => p.push(PItem::Skip(n)),     
                     None => return None
                 },
                 Some('F') => {
                     chars.next(); // three bases consumed!
-                    let s = consts(&mut chars);
+                    let s = consts(chars);
                     p.push(PItem::Search(s));
                 },
                 Some('I') => match chars.next() {
@@ -137,10 +149,7 @@ fn pattern(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<PItem>)> {
                             p.push(PItem::Close); 
                         }
                     },
-                    Some('I') => {
-                        rna.push(chars.take(7).collect::<String>());
-                        println!("rna.len() = {}", rna.len())
-                    },
+                    Some('I') => rna.push(chars.take(7).collect::<String>()),
                     _ => return None
                 },
                 _ => return None
@@ -150,7 +159,7 @@ fn pattern(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<PItem>)> {
     }
 }
 
-fn template(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
+fn template(chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
     let mut rna = Vec::new();
     let mut t = Vec::new();
     loop {
@@ -160,8 +169,8 @@ fn template(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
             Some('P') => t.push(TItem::Base('F')),
             Some('I') => match chars.next() {
                 Some('C') => t.push(TItem::Base('P')),
-                Some('F') | Some('P') => match nat(&mut chars) {
-                    Some(l) => match nat(&mut chars) {
+                Some('F') | Some('P') => match nat(chars) {
+                    Some(l) => match nat(chars) {
                         Some(n) => t.push(TItem::Reference(n, l)),
                         None => return None
                     },
@@ -169,7 +178,7 @@ fn template(mut chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
                 },
                 Some('I') => match chars.next() {
                     Some('C') | Some('F') => return Some((rna, t)),
-                    Some('P') => match nat(&mut chars) {
+                    Some('P') => match nat(chars) {
                         Some(n) => t.push(TItem::Length(n)),
                         None => return None
                     },
@@ -270,13 +279,13 @@ fn execute(mut dna: Rope) -> Vec<String> {
             (p, t, chars.index)
         };
         
-        println!("index = {}", index);
-        
         let restdna = dna.clone().slice(index, dna.len());
-        dna = match match_replace(p, t, &String::from(&restdna)) {
+        let res = match_replace(p, t, &String::from(&restdna));
+        println!("len(rna) = {}", rna.len());
+        dna = match res {
             Some(dna4) => Rope::from(&dna4),
-            None => continue 
-        } 
+            None => restdna 
+        };
     }
 }
 
