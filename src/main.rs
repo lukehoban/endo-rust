@@ -9,6 +9,8 @@ use xi_rope::{Rope, ChunkIter};
 struct RopeCharIter<'a> {
     chunk_iter: ChunkIter<'a>,
     char_iter: Option<Chars<'a>>,
+    buf: Vec<char>,
+    buf_index: usize,
     index: usize
 }
 
@@ -16,21 +18,49 @@ impl<'a> Iterator for RopeCharIter<'a> {
     type Item = char;
 
     fn next(&mut self) -> Option<char> {
+        self.buf_index = 0;
+        self.index = self.index + 1;
+        if self.buf.is_empty() {
+            self.next_inner()
+        } else {
+            Some(self.buf.remove(0))
+        }
+    }
+}
+
+impl<'a> RopeCharIter<'a> {
+    fn next_inner(&mut self) -> Option<char> {
         let next_char_iter = match self.char_iter {
-            Some(ref mut chars) => match chars.next() {
-                Some(c) => {
-                    self.index = self.index + 1;  
-                    return Some(c)
+                Some(ref mut chars) => match chars.next() {
+                    Some(c) => {  
+                        return Some(c)
+                    },
+                    None => None
                 },
-                None => None
-            },
-            None => match self.chunk_iter.next() {
-                Some(next_chunk) => Some(next_chunk.chars()), 
-                None => return None
+                None => match self.chunk_iter.next() {
+                    Some(next_chunk) => Some(next_chunk.chars()), 
+                    None => return None
+                }
+            };
+            self.char_iter = next_char_iter;
+            self.next_inner()
+    }
+    
+    fn peek(&mut self) -> Option<&char> {
+        let ret = if self.buf_index < self.buf.len() {
+            Some(&self.buf[self.buf_index])
+        } else {
+            match self.next_inner() {
+                Some(x) => {
+                    self.buf.push(x);
+                    Some(&self.buf[self.buf_index])
+                }
+                None => return None,
             }
         };
-        self.char_iter = next_char_iter;
-        self.next()
+
+        self.buf_index += 1;
+        ret
     }
 }
 
@@ -38,6 +68,8 @@ fn rope_char_iter(rope: &Rope) -> RopeCharIter {
     RopeCharIter {
         chunk_iter: rope.iter_chunks(),
         char_iter: None,
+        buf: Vec::new(),
+        buf_index: 0,
         index: 0
     }    
 }
@@ -87,23 +119,17 @@ fn nat(chars: &mut RopeCharIter) -> Option<usize> {
     }
 }
 
-fn consts(chars: &mut RopeCharIter) -> String {
+fn consts(iter: &mut RopeCharIter) -> String {
     let mut ret = String::from("");
-    // TODO: This doesn't work, since the peekable still 
-    // advances the underlying iterator too far.
-    // Also, need to be able to peek two ahead without 
-    // advancing the iterator.
-    // May have to make RopeCharIter multi peek.
-    let mut iter = chars.peekable();
     loop {
         match iter.peek() {
             Some(&'C') => { ret.push('I'); iter.next(); },
             Some(&'F') => { ret.push('C'); iter.next(); },
             Some(&'P') => { ret.push('F'); iter.next(); },
             Some(&'I') => {
-                iter.next();
                 match iter.peek() {
                     Some(&'C') => {
+                        iter.next();
                         iter.next();
                         ret.push('P')
                     },
@@ -114,6 +140,15 @@ fn consts(chars: &mut RopeCharIter) -> String {
         };
         
     }
+}
+
+#[test]
+fn consts_test() {
+    let input = "CPICCFPICICFCPPIIC";
+    let rope = Rope::from(input);
+    let mut iter = rope_char_iter(&rope);
+    assert_eq!("IFPICFPPCIFF", consts(&mut iter));    
+    assert_eq!("IIC", &String::from(rope.clone().slice(iter.index, rope.len())));    
 }
 
 fn pattern(chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<PItem>)> {
