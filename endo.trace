@@ -1,0 +1,99 @@
+
+Notes:
+
+The notation \n denotes backreference n at protection level 0
+The dna is always given at the beginning of an iteration.
+The accumulated rna length is always given at the end of an iteration.
+
+iteration 0
+dna = IIIPIPIIPC... (7523060 bases)
+pattern  !0(!4536645(!800)!2971964)
+template \0\1IIIIIIIIIIIIIIIIIIIIIIIPIIIIIIIIIIIIIIIIIIIIIIIP
+succesful match of length 7509409
+e[0] = IIICCCCPIC... (800 bases)
+e[1] = IFPICFPPCF... (7509409 bases)
+len(rna) = 1343
+
+iteration 1
+dna = IIICCCCPIC... (7510293 bases)
+pattern  !605(!2345486(!2574)!5161349)
+template \0\1IIICIIIIICICCCIICICIIICPCICCCICIICIIIIIIIIIIIIIP
+succesful match of length 7510014
+e[0] = IIICIPIICC... (2574 bases)
+e[1] = IFPICFPPCF... (7509409 bases)
+len(rna) = 1344
+
+iteration 2
+dna = IIICIPIICC... (7512115 bases)
+pattern  (!7511905)
+template \0CIIIICICCICICIICICIICCCP
+succesful match of length 7511905
+e[0] = IIPIPIICCI... (7511905 bases)
+len(rna) = 1345
+
+iteration 3
+dna = IIPIPIICCI... (7512061 bases)
+pattern  (!823916P)
+template IPCCIICICIIIICIIIIIIIIIIIPIICIIC\0
+failed match
+len(rna) = 1345
+
+iteration 4
+dna = IIPIPCIIII... (7511982 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!1)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+succesful match of length 7511863
+e[0] = IIPIPCIIII... (7511850 bases)
+e[1] = P (1 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
+
+iteration 5
+dna = IIPIPCIIII... (7511866 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!4)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+succesful match of length 7511745
+e[0] = IIPIPCIIII... (7511729 bases)
+e[1] = PPPP (4 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
+
+iteration 6
+dna = IIPIPCIIII... (7511757 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!16)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+succesful match of length 7511634
+e[0] = IIPIPCIIII... (7511606 bases)
+e[1] = PPPPPPPPPP... (16 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
+
+iteration 7
+dna = IIPIPCIIII... (7511682 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!64)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+succesful match of length 7511557
+e[0] = IIPIPCIIII... (7511481 bases)
+e[1] = PPPPPPPPPP... (64 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
+
+iteration 8
+dna = IIPIPCIIII... (7511749 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!256)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+succesful match of length 7511622
+e[0] = IIPIPCIIII... (7511354 bases)
+e[1] = PPPPPPPPPP... (256 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
+
+iteration 9
+dna = IIPIPCIIII... (7512390 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!1024)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+succesful match of length 7512261
+e[0] = IIPIPCIIII... (7511225 bases)
+e[1] = PPPPPPPPPP... (1024 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
