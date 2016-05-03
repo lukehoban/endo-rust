@@ -299,13 +299,24 @@ fn search(i: usize, s: &str, dna: &Rope) -> Option<usize> {
 
 fn replace(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
     let mut ret = Rope::from("");
+    let mut bases = String::new();
     for item in t {
         match item {
-            TItem::Base(c) => ret.push_str(&c.to_string()),
-            TItem::Reference(n, l) => ret.push(protect(l, e[n].clone())),
-            TItem::Length(n) => ret.push(asnat(e[n].len()))
+            TItem::Base(c) => bases.push_str(&c.to_string()),
+            TItem::Reference(n, l) => {
+                ret.push_str(&bases);
+                bases = String::new(); 
+                ret.push(protect(l, e[n].clone()))
+            },
+            TItem::Length(n) => {
+                ret.push_str(&bases);
+                bases = String::new();
+                ret.push(asnat(e[n].len()))
+            }
         }
-    }   
+    }
+    ret.push_str(&bases);
+    bases = String::new();
     ret.push(dna);
     ret
 }
