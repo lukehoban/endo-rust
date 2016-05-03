@@ -227,42 +227,52 @@ fn template(chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
     }
 }
 
-fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: &Rope) -> Option<Rope> {
+fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope) -> Rope {
     let mut i = 0usize;
     let mut e = Vec::new();
     let mut c = Vec::new();
+    let mut failed = false;
     for item in p {
         match item {
             PItem::Base(c) => { 
                 if dna.byte_at(i) == c as u8 {
                     i = i + 1
                 } else {
-                    return None
+                    failed = true;
+                    break
                 }
             },
             PItem::Skip(n) => {
                 i = i + n;
                 if i  > dna.len() {
-                    return None
+                    failed = true;
+                    break
                 }
             },
             PItem::Search(ref s) => panic!("nyi"),
             PItem::Open => c.push(i),
             PItem::Close => match c.pop()  {
                 Some(c0) => e.push(dna.clone().slice(c0, i)),
-                None => return None
+                None => {
+                    failed = true;
+                    break
+                }
             }
         }
+    }
+    if failed {
+        println!("failed match");
+        return dna
     }
     println!("succesful match of length {}", i);
     for (i, captured) in e.iter().enumerate() {
         println!("e[{}] = {}", i, dna_to_string(&captured));
     }
-    return Some(replace(t, e, dna.clone().slice(i, dna.len())));
+    let dna_len = dna.len();
+    replace(t, e, dna.slice(i, dna_len))
 }
 
 fn replace<'a>(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
-    //let mut rr = RopeBuilder::new();
     let mut ret = Rope::from("");
     let len = ret.len();
     for item in t {
@@ -317,14 +327,9 @@ fn execute(mut dna: Rope) -> Vec<String> {
             rna.extend(rna3.into_iter());
             (p, t, chars.index)
         };
-        
-        let restdna = dna.clone().slice(index, dna.len());
-        let res = match_replace(p, t, &restdna);
+        let dna_len = dna.len();
+        dna = match_replace(p, t, dna.slice(index, dna_len));
         println!("len(rna) = {}", rna.len());
-        dna = match res {
-            Some(dna4) => dna4,
-            None => restdna
-        };
     }
 }
 
