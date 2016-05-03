@@ -238,31 +238,31 @@ fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope) -> Rope {
                 if dna.byte_at(i) == c as u8 {
                     i = i + 1
                 } else {
-                    failed = true;
-                    break
+                    failed = true
                 }
             },
             PItem::Skip(n) => {
                 i = i + n;
-                if i  > dna.len() {
-                    failed = true;
-                    break
+                if i > dna.len() {
+                    failed = true
                 }
             },
-            PItem::Search(ref s) => panic!("nyi"),
+            PItem::Search(ref s) => {
+                match search(i, s, &dna) {
+                    Some(n) => i = n,
+                    None => failed = true
+                }
+            },
             PItem::Open => c.push(i),
             PItem::Close => match c.pop()  {
                 Some(c0) => e.push(dna.clone().slice(c0, i)),
-                None => {
-                    failed = true;
-                    break
-                }
+                None => failed = true
             }
         }
-    }
-    if failed {
-        println!("failed match");
-        return dna
+        if failed {
+            println!("failed match");
+            return dna    
+        }
     }
     println!("succesful match of length {}", i);
     for (i, captured) in e.iter().enumerate() {
@@ -270,6 +270,10 @@ fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope) -> Rope {
     }
     let dna_len = dna.len();
     replace(t, e, dna.slice(i, dna_len))
+}
+
+fn search(i: usize, s: &str, dna: &Rope) -> Option<usize> {
+    panic!("nyi");
 }
 
 fn replace<'a>(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
