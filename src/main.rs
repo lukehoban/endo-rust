@@ -260,14 +260,14 @@ fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope) -> Rope {
             }
         }
         if failed {
-            println!("failed match");
+            //println!("failed match");
             return dna    
         }
     }
-    println!("succesful match of length {}", i);
-    for (i, captured) in e.iter().enumerate() {
-        println!("e[{}] = {}", i, dna_to_string(&captured));
-    }
+    //println!("succesful match of length {}", i);
+    //for (i, captured) in e.iter().enumerate() {
+    //    println!("e[{}] = {}", i, dna_to_string(&captured));
+    //}
     let dna_len = dna.len();
     replace(t, e, dna.slice(i, dna_len))
 }
@@ -314,8 +314,22 @@ fn protect(l: usize, d: Rope) -> Rope {
     if l == 0 {
         d
     } else {
-        panic!("nyi - protect")
+        protect(l - 1, quote(d))
     }
+}
+
+fn quote(d: Rope) -> Rope {
+    let mut s = String::new();
+    for c in rope_char_iter(&d) {
+        match c {
+            'I' => s = s + "C",
+            'C' => s = s + "F",
+            'F' => s = s + "P",
+            'P' => s = s + "IC",
+            _ => return Rope::from(s)
+        }
+    }
+    Rope::from(s)
 }
 
 fn asnat(mut n: usize) -> Rope {
@@ -344,28 +358,31 @@ fn execute(mut dna: Rope) -> Vec<String> {
     let mut iteration = -1  ;
     loop {
         iteration = iteration + 1;
-        println!("");
-        println!("iteration = {}", iteration);
-        println!("dna = {}", dna_to_string(&dna));
+        if iteration % 10000 == 0 {
+            println!("iteration = {}", iteration);
+        }
+        //println!("");
+        //println!("iteration = {}", iteration);
+        //println!("dna = {}", dna_to_string(&dna));
         let (p, t, index) = {
             let mut chars = rope_char_iter(&dna);
             let (rna2, p) = match pattern(&mut chars) {
                 None => return rna,
                 Some((rna2, p)) => (rna2, p)
             };
-            println!("pattern  {}", pattern_to_string(&p));
+            //println!("pattern  {}", pattern_to_string(&p));
             rna.extend(rna2.into_iter());
             let (rna3, t) = match template(&mut chars) {
                 None => return rna,
                 Some((rna3, t)) => (rna3, t)
             };
-            println!("template {}", template_to_string(&t));
+            //println!("template {}", template_to_string(&t));
             rna.extend(rna3.into_iter());
             (p, t, chars.index)
         };
         let dna_len = dna.len();
         dna = match_replace(p, t, dna.slice(index, dna_len));
-        println!("len(rna) = {}", rna.len());
+        //println!("len(rna) = {}", rna.len());
     }
 }
 
