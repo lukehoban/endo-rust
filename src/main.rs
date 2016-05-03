@@ -278,7 +278,7 @@ fn replace<'a>(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
     for item in t {
          match item {
              TItem::Base(c) => ret.push_str(&c.to_string()),
-             TItem::Reference( n, l) => ret.push(protect(l, e[n].clone())),
+             TItem::Reference(n, l) => ret.push(protect(l, e[n].clone())),
              TItem::Length(n) => panic!("nyi")
          }
     }
