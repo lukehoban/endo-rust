@@ -303,9 +303,9 @@ fn replace(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
         match item {
             TItem::Base(c) => ret.push_str(&c.to_string()),
             TItem::Reference(n, l) => ret.push(protect(l, e[n].clone())),
-            TItem::Length(n) => panic!("nyi")
+            TItem::Length(n) => ret.push(asnat(e[n].len()))
         }
-    }
+    }   
     ret.push(dna);
     ret
 }
@@ -315,6 +315,18 @@ fn protect(l: usize, d: Rope) -> Rope {
         d
     } else {
         panic!("nyi - protect")
+    }
+}
+
+fn asnat(mut n: usize) -> Rope {
+    let mut s = String::new();
+    loop {
+        if n == 0 {
+            s = s + "P";
+            return Rope::from(s);
+        }
+        s = s + (match n % 2 { 0 => "I", _ => "C" });
+        n = n / 2;
     }
 }
 
