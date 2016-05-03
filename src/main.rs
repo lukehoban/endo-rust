@@ -227,15 +227,18 @@ fn template(chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
     }
 }
 
-fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: &str) -> Option<String> {
+fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: &Rope) -> Option<Rope> {
     let mut i = 0usize;
     let mut e = Vec::new();
     let mut c = Vec::new();
     for item in p {
         match item {
-            PItem::Base(c) => match dna.bytes().nth(i) {
-                Some(ch) if (ch as u32) == (c as u32) => i = i + 1,
-                _ => return None
+            PItem::Base(c) => { 
+                if dna.byte_at(i) == c as u8 {
+                    i = i + 1
+                } else {
+                    return None
+                }
             },
             PItem::Skip(n) => {
                 i = i + n;
@@ -246,33 +249,34 @@ fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: &str) -> Option<String> {
             PItem::Search(ref s) => panic!("nyi"),
             PItem::Open => c.push(i),
             PItem::Close => match c.pop()  {
-                Some(c0) => e.push(&dna[c0..i]),
+                Some(c0) => e.push(dna.clone().slice(c0, i)),
                 None => return None
             }
         }
     }
     println!("succesful match of length {}", i);
     for (i, captured) in e.iter().enumerate() {
-        let captured = Rope::from(captured);
         println!("e[{}] = {}", i, dna_to_string(&captured));
     }
-    return Some(replace(t, e, &dna[i..]));
+    return Some(replace(t, e, dna.clone().slice(i, dna.len())));
 }
 
-fn replace<'a>(t: Vec<TItem>, e: Vec<&'a str>, dna: &'a str) -> String {
-    let mut r = "".to_owned();
+fn replace<'a>(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
+    //let mut rr = RopeBuilder::new();
+    let mut ret = Rope::from("");
+    let len = ret.len();
     for item in t {
          match item {
-             TItem::Base(c) => r.push(c),
-             TItem::Reference(n, l) => r.push_str(protect(l, e[n])),
+             TItem::Base(c) => ret.push_str(&c.to_string()),
+             TItem::Reference( n, l) => ret.push(protect(l, e[n].clone())),
              TItem::Length(n) => panic!("nyi")
          }
     }
-    r.push_str(dna);
-    r
+    ret.push(dna);
+    ret
 }
 
-fn protect(l: usize, d: &str) -> &str {
+fn protect(l: usize, d: Rope) -> Rope {
     if l == 0 {
         d
     } else {
@@ -315,11 +319,11 @@ fn execute(mut dna: Rope) -> Vec<String> {
         };
         
         let restdna = dna.clone().slice(index, dna.len());
-        let res = match_replace(p, t, &String::from(&restdna));
+        let res = match_replace(p, t, &restdna);
         println!("len(rna) = {}", rna.len());
         dna = match res {
-            Some(dna4) => Rope::from(&dna4),
-            None => restdna 
+            Some(dna4) => dna4,
+            None => restdna
         };
     }
 }

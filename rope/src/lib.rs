@@ -148,6 +148,12 @@ impl Rope {
         self.edit_str(len, len, s);
     }
 
+    /// Append rope `r` to the string.
+    pub fn push(&mut self, r: Rope) {
+        let len = self.len();
+        self.edit(len, len, r);
+    }
+
     /// Edit the string, replacing the byte range [`start`..`end`] with `new`.
     ///
     /// Note: `edit` and `edit_str` may be merged, using traits.
