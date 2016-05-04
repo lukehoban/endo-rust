@@ -15,13 +15,14 @@ use std::env;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
-    opts.optopt("o", "", "set output file name", "out.png");
+    opts.optopt("o", "out", "set output file name", "out.png");
     opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
     };
     
+    let out_file = matches.opt_str("o").unwrap_or(String::from("out.png"));
     let prefix = matches.free.into_iter().next().unwrap_or(String::new());
         
     let mut f = File::open("endo.dna").unwrap();
@@ -37,5 +38,5 @@ fn main() {
  
     let bitmap = rna::build(rna);
  
-    let _ = bitmap.save(&Path::new("out.png")).unwrap();
+    let _ = bitmap.save(&Path::new(&out_file)).unwrap();
 }

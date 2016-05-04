@@ -1,10 +1,11 @@
-use image::{ImageBuffer, Rgba};
+use std::cmp;
+use image::{ImageBuffer, Rgba, Pixel};
 
 type Pos = (u32, u32);
 type RGB = (u8, u8, u8);
 type Transparency = u8;
-type Pixel = (RGB, Transparency);
-pub type Bitmap = ImageBuffer<Rgba<u8>, Vec<u8>>; 
+type Pix = Rgba<u8>;
+pub type Bitmap = ImageBuffer<Pix, Vec<u8>>; 
 
 enum Color {
     RGB(RGB),
@@ -12,6 +13,8 @@ enum Color {
 }
 
 type Bucket = Vec<Color>;
+
+#[derive(Clone, Copy, Debug)]
 enum Dir { N, E, S, W}
 
 const black: RGB = (0,0,0);
@@ -34,7 +37,7 @@ struct State {
 }
 
 fn transparent_bitmap() -> Bitmap {
-    ImageBuffer::new(600, 600)
+    ImageBuffer::from_pixel(600, 600, Rgba::from_channels(0,0,0,0))
 }
 
 impl State {
@@ -48,11 +51,139 @@ impl State {
         }
     }
     
-    fn addColor(&mut self, c: Color) {
+    fn move_dir(&mut self) {
+        self.position = match (self.position, self.dir) {
+            ((x,y), Dir::N) => (x, (y + 600 -1) % 600),
+            ((x,y), Dir::E) => ((x + 1) % 600, y),
+            ((x,y), Dir::S) => (x, (y + 1) % 600),
+            ((x,y), Dir::W) => ((x + 600 - 1) % 600, y)
+        };
+    }
+    
+    fn turn_counterclockwise(&mut self) {
+        self.dir = match self.dir {
+            Dir::N => Dir::W,
+            Dir::E => Dir::N,
+            Dir::S => Dir::E,
+            Dir::W => Dir::S
+        };
+    }
+    
+    fn turn_clockwise(&mut self) {
+        self.dir = match self.dir {
+            Dir::N => Dir::E,
+            Dir::E => Dir::S,
+            Dir::S => Dir::W,
+            Dir::W => Dir::N
+        };
+    }
+    
+    fn get_pixel(&mut self, (x, y): Pos) -> Pix {
+        self.bitmaps[0].get_pixel(x, y).clone()
+    }
+    
+    fn set_pixel(&mut self, (x, y): Pos) {
+        let pix = self.current_pixel();
+        self.bitmaps[0].put_pixel(x, y, pix)
+    }
+    
+    fn line(&mut self) {
+        let (x0, y0) = self.position;
+        let (x1, y1) = self.mark;
+        let deltax = (x1 as i32 - x0 as i32);
+        let deltay = (y1 as i32 - y0 as i32);
+        let d = cmp::max(deltax.abs(), deltay.abs()); 
+        let c = if deltax * deltay <= 0 { 1 } else { 0 };
+        let offset = (d - c) / 2;
+        let mut x = x0 as i32 * d + offset;
+        let mut y = y0 as i32 * d + offset;
+        for _ in 0..d {
+            self.set_pixel(((x/d) as u32, (y/d) as u32));
+            x += deltax;
+            y += deltay;
+        }
+        self.set_pixel((x1, y1));
+    }
+    
+    fn try_fill(&mut self) {
+        let pos = self.position;
+        let new = self.current_pixel();
+        let old = self.get_pixel(pos);
+        if new != old {
+            self.fill(pos, old);
+        }
+    }
+    
+    fn fill_rec(&mut self, (x, y): Pos, initial: Pix) {
+        if self.get_pixel((x, y)) == initial {
+            self.set_pixel((x, y));
+            if x > 0 { self.fill((x-1, y), initial) }
+            if x < 599 { self.fill((x+1, y), initial) }
+            if y > 0 { self.fill((x, y-1), initial) }
+            if y < 599 { self.fill((x, y+ 1), initial) }
+        }
+    }
+    
+    fn fill(&mut self, p: Pos, initial: Pix) {
+        let mut to_fill = vec![p];
+        loop {
+            match to_fill.pop() {
+                None => return,
+                Some((x,y)) => if self.get_pixel((x, y)) == initial {
+                    self.set_pixel((x, y));
+                    if x > 0 { to_fill.push((x-1, y)) }
+                    if x < 599 { to_fill.push((x+1, y)) }
+                    if y > 0 { to_fill.push((x, y-1)) }
+                    if y < 599 { to_fill.push((x, y+ 1)) }
+                } 
+            }
+        }
+    }
+    
+    fn add_bitmap(&mut self, bitmap: Bitmap) {
+        if self.bitmaps.len() >= 10 { return }
+        self.bitmaps.insert(0, bitmap)
+    }
+    
+    fn compose(&mut self) {
+        if self.bitmaps.len() < 2 { return }
+        for x in 0..600 {
+            for y in 0..600 {
+                let (r0, g0, b0, a0) = self.bitmaps[0].get_pixel(x, y).channels4();
+                let (r1, g1, b1, a1) = self.bitmaps[1].get_pixel(x, y).channels4();
+                self.bitmaps[1].put_pixel(x, y, Rgba::from_channels(
+                    r0 + (((r1 as u32) * ((255 - a0) as u32))/255) as u8,
+                    g0 + (((g1 as u32) * ((255 - a0) as u32))/255) as u8,
+                    b0 + (((b1 as u32) * ((255 - a0) as u32))/255) as u8,
+                    a0 + (((a1 as u32) * ((255 - a0) as u32))/255) as u8
+                ))
+            }
+        }
+        let _ = self.bitmaps.remove(0);
+    }
+    
+    fn clip(&mut self) {
+        if self.bitmaps.len() < 2 { return }
+        for x in 0..600 {
+            for y in 0..600 {
+                let (r0, g0, b0, a0) = self.bitmaps[0].get_pixel(x, y).channels4();
+                let (r1, g1, b1, a1) = self.bitmaps[1].get_pixel(x, y).channels4();
+                self.bitmaps[1].put_pixel(x, y, Rgba::from_channels(
+                    (((r1 as u32) * (a0 as u32))/255) as u8,
+                    (((g1 as u32) * (a0 as u32))/255) as u8,
+                    (((b1 as u32) * (a0 as u32))/255) as u8,
+                    (((a1 as u32) * (a0 as u32))/255) as u8
+                ))
+            }
+        }
+        let _ = self.bitmaps.remove(0);
+    }
+    
+    fn add_color(&mut self, c: Color) {
         self.bucket.push(c)       
     }
     
-    fn currentPixel(&self) -> Pixel {
+    fn current_pixel(&self) -> Pix {
         let mut rsum = 0;
         let mut gsum = 0;
         let mut bsum = 0;
@@ -78,70 +209,86 @@ impl State {
         let bc = if rgbcount == 0 { 0 } else { bsum / rgbcount };
         let ac = if acount == 0 { 255 } else { asum / acount };
         
-        (((rc * ac / 255) as u8, (gc * ac / 255) as u8, (bc * ac / 255) as u8), ac as u8)
+        Rgba::from_channels((rc * ac / 255) as u8, (gc * ac / 255) as u8, (bc * ac / 255) as u8, ac as u8)
     }
 }
 
 #[test]
 fn current_pixel_1() {
     let mut state = State::new();
-    state.addColor(Color::A(transparent));
-    state.addColor(Color::A(opaque));
-    state.addColor(Color::A(opaque));
-    let pixel = state.currentPixel();
-    assert_eq!(((0, 0, 0), 170), pixel);
+    state.add_color(Color::A(transparent));
+    state.add_color(Color::A(opaque));
+    state.add_color(Color::A(opaque));
+    let pixel = state.current_pixel().channels4();
+    assert_eq!((0, 0, 0, 170), pixel);
 }
 
 #[test]
 fn current_pixel_2() {
     let mut state = State::new();
-    state.addColor(Color::RGB(black));
-    state.addColor(Color::RGB(yellow));
-    state.addColor(Color::RGB(cyan));
-    let pixel = state.currentPixel();
-    assert_eq!(((85, 170, 85), 255), pixel);
+    state.add_color(Color::RGB(black));
+    state.add_color(Color::RGB(yellow));
+    state.add_color(Color::RGB(cyan));
+    let pixel = state.current_pixel().channels4();
+    assert_eq!((85, 170, 85, 255), pixel);
 }
 
 #[test]
 fn current_pixel_3() {
     let mut state = State::new();
-    state.addColor(Color::RGB(yellow));
-    state.addColor(Color::A(transparent));
-    state.addColor(Color::A(opaque));
-    let pixel = state.currentPixel();
-    assert_eq!(((127, 127, 0), 127), pixel);
+    state.add_color(Color::RGB(yellow));
+    state.add_color(Color::A(transparent));
+    state.add_color(Color::A(opaque));
+    let pixel = state.current_pixel().channels4();
+    assert_eq!((127, 127, 0, 127), pixel);
 }
 
 #[test]
 fn current_pixel_4() {
     let mut state = State::new();
-    for _ in 0..18 { state.addColor(Color::RGB(black)) }
-    for _ in 0..7 { state.addColor(Color::RGB(red)) }
-    for _ in 0..39 { state.addColor(Color::RGB(magenta)) }
-    for _ in 0..10 { state.addColor(Color::RGB(white)) }
-    for _ in 0..3 { state.addColor(Color::A(opaque)) }
-    for _ in 0..1 { state.addColor(Color::A(transparent)) }
-    let pixel = state.currentPixel();
-    assert_eq!(((143, 25, 125), 191), pixel);
+    for _ in 0..18 { state.add_color(Color::RGB(black)) }
+    for _ in 0..7 { state.add_color(Color::RGB(red)) }
+    for _ in 0..39 { state.add_color(Color::RGB(magenta)) }
+    for _ in 0..10 { state.add_color(Color::RGB(white)) }
+    for _ in 0..3 { state.add_color(Color::A(opaque)) }
+    for _ in 0..1 { state.add_color(Color::A(transparent)) }
+    let pixel = state.current_pixel().channels4();
+    assert_eq!((143, 25, 125, 191), pixel);
 }
 
 pub fn build(rna: Vec<String>) -> Bitmap {
     let mut state = State::new();
     for r in rna {
         match r.as_ref() {
-            "PIPIIIC" => state.addColor(Color::RGB(black)),
-            "PIPIIIP" => state.addColor(Color::RGB(red)),
-            "PIPIICC" => state.addColor(Color::RGB(green)),
-            "PIPIICF" => state.addColor(Color::RGB(yellow)),
-            "PIPIICP" => state.addColor(Color::RGB(blue)),
-            "PIPIIFC" => state.addColor(Color::RGB(magenta)),
-            "PIPIIFF" => state.addColor(Color::RGB(cyan)),
-            "PIPIIPC" => state.addColor(Color::RGB(white)),
-            "PIPIIPF" => state.addColor(Color::A(transparent)),
-            "PIPIIPP" => state.addColor(Color::A(opaque)),
-            "PIIPICP" => state.bucket.clear(),            
-            _ => panic!("nyi - {}", r)
+            "PIPIIIC" => state.add_color(Color::RGB(black)),
+            "PIPIIIP" => state.add_color(Color::RGB(red)),
+            "PIPIICC" => state.add_color(Color::RGB(green)),
+            "PIPIICF" => state.add_color(Color::RGB(yellow)),
+            "PIPIICP" => state.add_color(Color::RGB(blue)),
+            "PIPIIFC" => state.add_color(Color::RGB(magenta)),
+            "PIPIIFF" => state.add_color(Color::RGB(cyan)),
+            "PIPIIPC" => state.add_color(Color::RGB(white)),
+            "PIPIIPF" => state.add_color(Color::A(transparent)),
+            "PIPIIPP" => state.add_color(Color::A(opaque)),
+            "PIIPICP" => state.bucket.clear(),
+            "PIIIIIP" => state.move_dir(),
+            "PCCCCCP" => state.turn_counterclockwise(),
+            "PFFFFFP" => state.turn_clockwise(),
+            "PCCIFFP" => state.mark = state.position,
+            "PFFICCP" => state.line(),
+            "PIIPIIP" => state.try_fill(),
+            "PCCPFFP" => state.add_bitmap(transparent_bitmap()),
+            "PFFPCCP" => state.compose(),
+            "PFFICCF" => state.clip(),
+            _ => ()
         }
     }
-    state.bitmaps.remove(0)
+    let mut ret = state.bitmaps.remove(0);
+    for x in 0..600 {
+        for y in 0..600 {
+            let p = ret.get_pixel(x, y).to_rgb().to_rgba();
+            ret.put_pixel(x, y, p);
+        }
+    }
+    ret
 }
