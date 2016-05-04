@@ -122,7 +122,9 @@ Again, flipping a base from `I` to `C` at 14867 bases into the DNA.  This produc
 
 Nice - this is a significant improvement!  *TODO: Compute the `risk` associated with the image - this one is much lower risk than the original*.
 
-The other prefix from the Fuun Field Repair Guid produces:
+### Fuun Field Repair Guide Pages
+
+The other prefix from the Fuun Field Repair Guide produces:
 
 ```
 > cargo run --release -- -l IIPIFFCPICFPPICIICCCIICIPPPCFIIC | more
@@ -198,10 +200,11 @@ But we can now try to get more pages - like page 3 - by replacing `CFCC...` with
 
 The style of the page is similar, but not yet clear what this means.
 
-Generating page 4, we see that not all pages are present.
+
+Generating page 4, we see that not all pages are present. There's a `-p` flag available for generating these pages by number instead of explicit prefix, so we'll use that.
 
 ```
-> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCFCCCCCCCCCCCCCCCCCCCCIIC
+> cargo run --release -- -p 4
 ```
 
 ![page4-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCFCCCCCCCCCCCCCCCCCCCCIIC.png](imgs/page4-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCFCCCCCCCCCCCCCCCCCCCCIIC.png)
@@ -209,7 +212,7 @@ Generating page 4, we see that not all pages are present.
 But generating page 5, it appears there are still more interesting pages left.
 
 ```
-> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCCCCCCCCCCCCCCCCCCCCIIC
+> cargo run --release -- -p 5
 ```
 
 ![page5-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCCCCCCCCCCCCCCCCCCCCIIC.png](imgs/page5-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCCCCCCCCCCCCCCCCCCCCIIC.png)
@@ -219,7 +222,7 @@ Another topic to come back and explore later.
 The Repair Guide Navigation page mentioned _page index 1337_, so let's try that one.  1337 = 10100111001 which in reverse is 10011100101 which becomes FCCFFFCCFCFCCCCCCCCCCCC in our integer encoding.
 
 ```
-> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCFFFCCFCFCCCCCCCCCCCCIIC
+> cargo run --release -- -p 1337
 ```
 
 ![page1337-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCFFFCCFCFCCCCCCCCCCCCIIC.png](imgs/page1337-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCFFFCCFCFCCCCCCCCCCCCIIC.png)
@@ -229,6 +232,85 @@ A few insights:
 * `5` matches what we already saw with the Lindemayer systems page
 * `999999999` is too large to fit inside 23 bits.
 * `4405829` does fit exactly in 23 bits, so all of the rest are legal pages
+* The catalog page is `damaged` - so perhaps there are more pages that are interesting?
 
+Let's generate all of the pages listed that we don't have yet.
+```bash
+cargo run --release -- -p 1729
+cargo run --release -- -p 8
+cargo run --release -- -p 23
+cargo run --release -- -p 42
+cargo run --release -- -p 112
+cargo run --release -- -p 10646
+cargo run --release -- -p 85
+cargo run --release -- -p 84
+cargo run --release -- -p 2181889
+cargo run --release -- -p 4405829
+cargo run --release -- -p 123456
+``` 
 
- 
+All of these work, except for 23 and 84, which fail to decode corrently.  __TODO: The currently stack overflow, which is probably our bug.  What intermediate images do they produce?__
+
+![page1729](imgs/page1729-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCCCCFFCFFCCCCCCCCCCCCIIC.png)
+![page8](imgs/page8-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCCFCCCCCCCCCCCCCCCCCCCIIC.png)
+![page42](imgs/page42-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCFCFCFCCCCCCCCCCCCCCCCCIIC.png)
+![page112](imgs/page112-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCCCFFFCCCCCCCCCCCCCCCCIIC.png)
+![page10646](imgs/page10646-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCFFCFCCFFCCFCFCCCCCCCCCIIC.png)
+![page85](imgs/page85-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCFCFCCCCCCCCCCCCCCCCIIC.png)
+![page2181889](imgs/page2181889-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCCCCCCFFCFCCFCFCCCCFCIIC.png)
+![page4405829](imgs/page4405829-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCCCFCCFCFFFCCFFCCCCFIIC.png)
+![page123456](imgs/page123456-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCCCCCFCCFCCCFFFFCCCCCCIIC.png)
+
+_TODO: Are there other legal pages that weren't in the index?_
+
+Let's explore some of the topics mentioned in these pages one by one.
+
+### Structure of the Fuun Genome
+
+At 'runtime' the Fuun genome appears to have a code section (`red zone`) a data section (`green zone`) and a stack-like section (`blue zone`)
+
+![page1729](imgs/page1729-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCCCCFFCFFCCCCCCCCCCCCIIC.png)
+
+The `Blue Zone` appears to start at `IFPICFPPCFIPP`.  Checking in `endo.dna`, we see that the only occurence of that string is very clone to the end:
+
+```
+....IFPICFPPCFIPP IFPICFPPCCIIFPICFPPCIFFPIFPICFPPCIFP
+```
+
+So the Blue Zone initially contains `IFPICFPPCCIIFPICFPPCIFFPIFPICFPPCIFP`.
+
+### Field-repairing Fuuns
+
+_ TODO _
+
+### Gene table
+
+_ TODO _
+
+### Encodings
+
+_ TODO _
+
+### RNA 'morphing' codes
+
+_ TODO _
+
+### Fuun Security Features
+
+_ TODO _
+
+### Stenography 
+
+_ TODO _
+
+### L-Systems 
+
+_ TODO _
+
+### Intergalactic Character Set 
+
+_ TODO _
+
+### RNA Compression
+
+_ TODO _
