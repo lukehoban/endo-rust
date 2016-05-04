@@ -144,3 +144,91 @@ This makes an edit in the same location as the previous code - but instead of `I
 
 ![IIPIFFCPICFPPICIICCCIICIPPPCFIIC.png](imgs/IIPIFFCPICFPPICIICCCIICIPPPCFIIC.png)
 
+It looks like integers are being encoded as bianry using `C = 1` and `I = 0`, but in reverse order (`ith least significant bit` counting from left) so that, for example, `4 = IIC`.  According to this, the previous two pages appear to be page `1` and `2`, with page "`0`" being the original Endo code with no modifications.  In fact, this is exatly the integer format that the `nat` function in the DNA implementation uses.
+
+To check that - lets see what the DNA looks like at the locatin where the first occurence of "IFPCFFP" appears:
+
+```
+...IFPCFFPIIIIIIIIIIIIIIIIIIIIIIIPIFPFPIIIIIIIIPIFPFIPIIIIIIIIIIIIIIIIIIIIIIIP...  
+```
+
+We can see `0` represented with 23 bases (24 including the closing `P` base).  (Note that we see a similar 23 base `0` just a little later).
+
+We already have rendered page `1` and `2` - what about `3 = CC`? 
+
+Let's desconstruct the prefix.
+
+* Start pattern
+* `IIP` -> `(`
+* `IFF C P IC F P P IC` -> `?"IFPCFFP"`
+* `IIC` -> `)`
+* `CC` -> `II`
+* `IIC` -> End pattern
+* Start tempalte
+* `IP P P` -> `\0` 
+* `CF` -> `IC`
+* `IIC` -> End template
+
+Let's expand this from 2 bits to all 23 bits for flexibility:
+
+* Start pattern
+* `IIP` -> `(`
+* `IFF C P IC F P P IC` -> `?"IFPCFFP"`
+* `IIC` -> `)`
+* `CCCCCCCCCCCCCCCCCCCCCCC` -> `IIIIIIIIIIIIIIIIIIIIIII`
+* `IIC` -> End pattern
+* Start tempalte
+* `IP P P` -> `\0` 
+* `CFCCCCCCCCCCCCCCCCCCCCC` -> `ICIIIIIIIIIIIIIIIIIIIII`
+* `IIC` -> End template
+
+Running this, we get the same result as before, since we make the same change to the DNA:
+
+```
+> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCFCCCCCCCCCCCCCCCCCCCCCIIC
+```
+
+But we can now try to get more pages - like page 3 - by replacing `CFCC...` with `FFCC...`.
+
+```
+> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFFCCCCCCCCCCCCCCCCCCCCCIIC
+```
+
+![page3-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFFCCCCCCCCCCCCCCCCCCCCCIIC.png](imgs/page3-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFFCCCCCCCCCCCCCCCCCCCCCIIC.png)
+
+The style of the page is similar, but not yet clear what this means.
+
+Generating page 4, we see that not all pages are present.
+
+```
+> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCFCCCCCCCCCCCCCCCCCCCCIIC
+```
+
+![page4-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCFCCCCCCCCCCCCCCCCCCCCIIC.png](imgs/page4-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCCFCCCCCCCCCCCCCCCCCCCCIIC.png)
+
+But generating page 5, it appears there are still more interesting pages left.
+
+```
+> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCCCCCCCCCCCCCCCCCCCCIIC
+```
+
+![page5-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCCCCCCCCCCCCCCCCCCCCIIC.png](imgs/page5-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCCCCCCCCCCCCCCCCCCCCIIC.png)
+
+Another topic to come back and explore later.
+
+The Repair Guide Navigation page mentioned _page index 1337_, so let's try that one.  1337 = 10100111001 which in reverse is 10011100101 which becomes FCCFFFCCFCFCCCCCCCCCCCC in our integer encoding.
+
+```
+> cargo run --release -- IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCFFFCCFCFCCCCCCCCCCCCIIC
+```
+
+![page1337-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCFFFCCFCFCCCCCCCCCCCCIIC.png](imgs/page1337-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCFFFCCFCFCCCCCCCCCCCCIIC.png)
+
+A few insights:
+
+* `5` matches what we already saw with the Lindemayer systems page
+* `999999999` is too large to fit inside 23 bits.
+* `4405829` does fit exactly in 23 bits, so all of the rest are legal pages
+
+
+ 
