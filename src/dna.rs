@@ -292,6 +292,14 @@ fn search(i: usize, s: &str, dna: &Rope) -> Option<usize> {
     }
 }
 
+fn env_get(e: &Vec<Rope>, i: usize) -> Rope  {
+    if i >= e.len() {
+        Rope::from("")
+    } else {
+        e[i].clone()
+    } 
+}
+
 fn replace(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
     let mut ret = Rope::from("");
     let mut bases = String::new();
@@ -302,15 +310,15 @@ fn replace(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
                 if bases.len() > 0 {
                     ret.push_str(&bases);
                     bases = String::new();
-                } 
-                ret.push(protect(l, e[n].clone()))
+                }
+                ret.push(protect(l, env_get(&e, n)))
             },
             TItem::Length(n) => {
                 if bases.len() > 0 {
                     ret.push_str(&bases);
                     bases = String::new();
                 }
-                ret.push(asnat(e[n].len()))
+                ret.push(asnat(env_get(&e, n).len()))
             }
         }
     }
