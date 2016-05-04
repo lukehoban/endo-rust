@@ -222,7 +222,7 @@ fn template(chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
     }
 }
 
-fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope) -> Rope {
+fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope, logging: bool) -> Rope {
     let mut i = 0usize;
     let mut e = Vec::new();
     let mut c = Vec::new();
@@ -255,14 +255,16 @@ fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope) -> Rope {
             }
         }
         if failed {
-            //println!("failed match");
+            if logging { println!("failed match") }
             return dna    
         }
     }
-    //println!("succesful match of length {}", i);
-    //for (i, captured) in e.iter().enumerate() {
-    //    println!("e[{}] = {}", i, dna_to_string(&captured));
-    //}
+    if logging {
+        println!("succesful match of length {}", i);
+        for (i, captured) in e.iter().enumerate() {
+           println!("e[{}] = {}", i, dna_to_string(&captured));
+        }
+    }
     let dna_len = dna.len();
     replace(t, e, dna.slice(i, dna_len))
 }
@@ -372,35 +374,44 @@ fn dna_to_string(dna: &Rope) -> String {
    s
 }
 
-pub fn execute(mut dna: Rope) -> Vec<String> {
+pub fn execute(mut dna: Rope, logging: bool) -> Vec<String> {
     let mut rna = Vec::new();
     let mut iteration = -1  ;
     loop {
         iteration = iteration + 1;
         if iteration % 10000 == 0 {
             println!("iteration = {}", iteration);
+        
         }
-        //println!("");
-        //println!("iteration = {}", iteration);
-        //println!("dna = {}", dna_to_string(&dna));
+        if logging {
+            println!("");
+            println!("iteration = {}", iteration);
+            println!("dna = {}", dna_to_string(&dna));
+        }
         let (p, t, index) = {
             let mut chars = rope_char_iter(&dna);
             let (rna2, p) = match pattern(&mut chars) {
                 None => return rna,
                 Some((rna2, p)) => (rna2, p)
             };
-            //println!("pattern  {}", pattern_to_string(&p));
+            if logging {
+                println!("pattern  {}", pattern_to_string(&p));
+            }
             rna.extend(rna2.into_iter());
             let (rna3, t) = match template(&mut chars) {
                 None => return rna,
                 Some((rna3, t)) => (rna3, t)
             };
-            //println!("template {}", template_to_string(&t));
+            if logging {
+                println!("template {}", template_to_string(&t));
+            }
             rna.extend(rna3.into_iter());
             (p, t, chars.index)
         };
         let dna_len = dna.len();
-        dna = match_replace(p, t, dna.slice(index, dna_len));
-        //println!("len(rna) = {}", rna.len());
+        dna = match_replace(p, t, dna.slice(index, dna_len), logging);
+        if logging {
+            println!("len(rna) = {}", rna.len());
+        }
     }
 }
