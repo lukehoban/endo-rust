@@ -21,9 +21,13 @@ fn main() {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
     };
-    
-    let out_file = matches.opt_str("o").unwrap_or(String::from("out.png"));
+    let outpng = "out.png";
+    let mut out_file = matches.opt_str("o").unwrap_or(String::from(outpng));
     let prefix = matches.free.into_iter().next().unwrap_or(String::new());
+    if prefix.len() > 0 && out_file == outpng {
+        out_file = prefix.clone() + ".png";
+    }
+    
         
     let mut f = File::open("endo.dna").unwrap();
     let mut s = String::new();
