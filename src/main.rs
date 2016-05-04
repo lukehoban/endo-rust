@@ -28,7 +28,6 @@ fn main() {
         out_file = prefix.clone() + ".png";
     }
     
-        
     let mut f = File::open("endo.dna").unwrap();
     let mut s = String::new();
     let _ = f.read_to_string(&mut s); 
