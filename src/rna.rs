@@ -1,5 +1,6 @@
 use std::cmp;
 use image::{ImageBuffer, Rgba, Pixel};
+use std::path::Path;
 
 type Pos = (u32, u32);
 type RGB = (u8, u8, u8);
@@ -256,9 +257,15 @@ fn current_pixel_4() {
     assert_eq!((143, 25, 125, 191), pixel);
 }
 
-pub fn build(rna: Vec<String>) -> Bitmap {
+pub fn build(rna: Vec<String>, out_file: &str, render_intermediate: bool) {
     let mut state = State::new();
+    let mut iter = 0;
     for r in rna {
+        iter += 1;
+        if iter % 100 == 0 && render_intermediate {
+            let s = format!("{}-{}", iter, out_file);
+            state.bitmaps[0].save(&Path::new(&s)).unwrap();
+        }
         match r.as_ref() {
             "PIPIIIC" => state.add_color(Color::RGB(black)),
             "PIPIIIP" => state.add_color(Color::RGB(red)),
@@ -290,5 +297,5 @@ pub fn build(rna: Vec<String>) -> Bitmap {
             ret.put_pixel(x, y, p);
         }
     }
-    ret
+    let _ = ret.save(&Path::new(&out_file)).unwrap();
 }

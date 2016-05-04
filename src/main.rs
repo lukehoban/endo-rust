@@ -7,7 +7,6 @@ mod rna;
 
 use std::io::prelude::*;
 use std::fs::File;
-use std::path::Path;
 use xi_rope::Rope;
 use getopts::Options;
 use std::env;
@@ -15,12 +14,13 @@ use std::env;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
+    opts.optflag("i", "intermediate-rna", "render intermediate rna");
     opts.optopt("o", "out", "set output file name", "out.png");
-    opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
     };
+    let render_intermediates = matches.opt_present("i");
     let outpng = "out.png";
     let mut out_file = matches.opt_str("o").unwrap_or(String::from(outpng));
     let prefix = matches.free.into_iter().next().unwrap_or(String::new());
@@ -39,7 +39,5 @@ fn main() {
     let rna = dna::execute(dna);
     println!("RNAs: {}", rna.len());
  
-    let bitmap = rna::build(rna);
- 
-    let _ = bitmap.save(&Path::new(&out_file)).unwrap();
+    rna::build(rna, &out_file, render_intermediates);
 }
