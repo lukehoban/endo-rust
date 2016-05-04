@@ -119,3 +119,28 @@ Again, flipping a base from `I` to `C` at 14867 bases into the DNA.  This produc
 ```
 
 ![IIPIFFCPICPCIICICIICIPPPPIIC.png](imgs/IIPIFFCPICPCIICICIICIPPPPIIC.png)
+
+Nice - this is a significant improvement!  *TODO: Compute the `risk` associated with the image - this one is much lower risk than the original*.
+
+The other prefix from the Fuun Field Repair Guid produces:
+
+```
+> cargo run --release -- -l IIPIFFCPICFPPICIICCCIICIPPPCFIIC | more
+
+iteration = 0
+dna = IIPIFFCPIC... (7523092 bases)
+pattern  (?"IFPCFFP")II
+template \0IC
+succesful match of length 14869
+e[0] = IIIPIPIIPC... (14867 bases)
+len(rna) = 0
+```
+
+This makes an edit in the same location as the previous code - but instead of `I -> C`, it changes `II -> IC`.  The result is significantly different.
+
+```
+> cargo run --release -- IIPIFFCPICFPPICIICCCIICIPPPCFIIC
+```
+
+![IIPIFFCPICFPPICIICCCIICIPPPCFIIC.png](imgs/IIPIFFCPICFPPICIICCCIICIPPPCFIIC.png)
+
