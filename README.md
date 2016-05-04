@@ -19,6 +19,10 @@ This generates a full `.png` by default, but can render intermediate steps in th
 
 ## Walkthrough
 
+Our goal is to generate the target Endo image:
+
+![target.png](imgs/target.png)
+
 First, make sure things build.
 
 ```bash
@@ -31,16 +35,23 @@ Render the original Endo image with no prefix.
 cargo run --release
 ```
 
+![endo.png](imgs/endo.png)
+
 Render the self-check based on the hint in Endo.pdf page 21.
 
 ```bash
 cargo run --release -- IIPIFFCPICICIICPIICIPPPICIIC
 ```
+
+![IIPIFFCPICICIICPIICIPPPICIIC.png](imgs/IIPIFFCPICICIICPIICIPPPICIIC.png)
+
 Render all of the intermediate results - the first 13 build another prefix. 
 
 ```bash
 cargo run --release -- -i IIPIFFCPICICIICPIICIPPPICIIC
 ```
+
+![1300-IIPIFFCPICICIICPIICIPPPICIIC.png](imgs/1300-IIPIFFCPICICIICPIICIPPPICIIC.png)
 
 Render the Fuun Field Repair Guide based on the prefix from previous step.
 
@@ -48,9 +59,12 @@ Render the Fuun Field Repair Guide based on the prefix from previous step.
 cargo run --release -- IIPIFFCPICFPPICIICCIICIPPPFIIC
 ```
 
+![IIPIFFCPICFPPICIICCIICIPPPFIIC.png](imgs/IIPIFFCPICFPPICIICCIICIPPPFIIC.png)
+
 Rotate the sun per the Fuun Field Repair Guide.
 
 ```bash
 cargo run --release -- IIPIFFCPICPCIICICIICIPPPPIIC
 ```
 
+![IIPIFFCPICPCIICICIICIPPPPIIC.png](imgs/IIPIFFCPICPCIICICIICIPPPPIIC.png)
