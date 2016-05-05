@@ -271,21 +271,214 @@ At 'runtime' the Fuun genome appears to have a code section (`red zone`) a data 
 
 ![page1729](imgs/page1729-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCCCCCFFCFFCCCCCCCCCCCCIIC.png)
 
-The `Blue Zone` appears to start at `IFPICFPPCFIPP`.  Checking in `endo.dna`, we see that the only occurence of that string is very clone to the end:
+According to the `Gene Table` page the `Green Zone` starts at `IFPICFPPCFFPP`.  In the original Endo this occurs at 13616-13629.
+
+According to `Field Repairing Fuuns` the `Blue Zone` starts at `IFPICFPPCFIPP`.  In the original Endo this occurs at 7523012-7523025.  That location is very clone to the end:
 
 ```
 ....IFPICFPPCFIPP IFPICFPPCCIIFPICFPPCIFFPIFPICFPPCIFP
 ```
 
-So the Blue Zone initially contains `IFPICFPPCCIIFPICFPPCIFFPIFPICFPPCIFP`.
+So the Blue Zone initially contains exactly `IFPICFPPCCIIFPICFPPCIFFPIFPICFPPCIFP`.  _Note: Step 5,6,7,etc. of the DNA process grow this section by matching the latter part `IFPICFPPCIFF`, `P`, `IFPICFPPCIFP`._ 
+
+This suggests that the `Green Zone` is 7509383 bases between the markers, 7509396 bases with one marker and 7509409 bases with both markers.   
+
+So our original DNA has Red/Green/Blue = 13689/7509409/36.
+
+Let's go back and look at the beginning of the trace of running `endo.dna`.  We'll annotate each step with an interpretation now that we understand a bit about the Fuun Genome structure.
+
+```
+iteration = 0
+dna = IIPIFFCPIC... (7523134 bases)
+pattern  (?"IFPCFFP")IIIIIIIIIIIIIIIIIIIIIII
+template \0IIIIIIIIIIIIIIIIIIIIIII
+len(pattern + template) = 74
+succesful match of length 14890
+e[0] = IIIPIPIIPC... (14867 bases)
+len(rna) = 0
+```
+
+Looks for a 23-base `0` at a certain location and replaces it with `0` - doing nothing.  This is the same location we modified to find the repair guide pages - so it looks like this is just here as another hint.
+
+Result is 13615/7509409/36.
+
+```
+iteration = 1
+dna = IIIPIPIIPC... (7523060 bases)
+pattern  !0(!4536645(!800)!2971964)
+template \0\1IIIIIIIIIIIIIIIIIIIIIIIPIIIIIIIIIIIIIIIIIIIIIIIP
+len(pattern + template) = 13615
+succesful match of length 7509409
+e[0] = IIICCCCPIC... (800 bases)
+e[1] = IFPICFPPCF... (7509409 bases)
+len(rna) = 1343
+```
+
+The long match here is 7509409 bases, which is the length of the green zone, and the template places three things, with the green zone length part in the middle unchanged.
+
+* Red: The 800 bases pulled from index 4536645 in the green zone.
+* Green: Unmodified green zone segment
+* Blue: Two 23 base `0`s at the front of the blue zone, followed by the original 36 bytes in the blue zone.
+
+This feels like a "function call" using the requested 800 bases of function code. 
+
+Result is 800/7509409/84.
+
+```
+iteration = 2
+dna = IIICCCCPIC... (7510293 bases)
+pattern  !605(!2345486(!2574)!5161349)
+template \0\1IIICIIIIICICCCIICICIIICPCICCCICIICIIIIIIIIIIIIIP
+len(pattern + template) = 195
+succesful match of length 7510014
+e[0] = IIICIPIICC... (2574 bases)
+e[1] = IFPICFPPCF... (7509409 bases)
+len(rna) = 1344
+```
+
+Again, the green zone remains intact in the middle.  This time though, the pattern skips past 605 bases and throws them away, prepending 2574 bases from location 2345486 in the Green Zone.  Finally, the Blue zone is prepended with another two integers - `IIICIIIIICICCCIICICIIICP = 10001010011101000001000 = 4536840` and `CICCCICIICIIIIIIIIIIIIIP = 1001011101 = 605`.  The latter is the number of bases we threw away.  The former is 195 bases into the 800 bases of the previous 'call'.
+
+Result is 2574/7509409/132.
+
+```
+iteration = 3
+dna = IIICIPIICC... (7512115 bases)
+pattern  (!7511905)
+template \0CIIIICICCICICIICICIICCCP
+len(pattern + template) = 78
+succesful match of length 7511905
+e[0] = IIPIPIICCI... (7511905 bases)
+len(rna) = 1345
+```
+
+Places the number `CIIIICICCICICIICICIICCCP = 7509409` at location 7511905, which is the front of the Blue Zone. 
+
+Result is 2496/7509409/156.
+
+```
+iteration = 4
+dna = IIPIPIICCI... (7512061 bases)
+pattern  (!823916P)
+template IPCCIICICIIIICIIIIIIIIIIIPIICIIC\0
+len(pattern + template) = 79
+failed match
+len(rna) = 1345
+```
+
+Tests whether a P occurs at 823916 which is 823916 - 2496 + 79 = 821499 bases into the green zone.
+
+If this had matched, it would put some new code in the red zone which would have done `IPCCIICICIIIICIIIIIIIIIIIPIICIIC = /!2131//`, skipping to past a large piece of the red zone code.
+
+But it doesn't in this case.
+
+Result is 2417/7509409/156.
+
+```
+iteration = 5
+dna = IIPIPCIIII... (7511982 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!1)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+len(pattern + template) = 119
+succesful match of length 7511863
+e[0] = IIPIPCIIII... (7511850 bases)
+e[1] = P (1 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
+```
+
+Searches for `IFPICFPPCIFF` and `IFPICFPPCIFP` seperated by one base (skipping by the length of the green zone, though this doesn't appear to be necessary since these markers are still unique.  This matches the very end of the DNA with a `P` in between.  Multiplies this one `P` into four.
+
+Result is 2298/7509409/159.
+
+```
+iteration = 6
+dna = IIPIPCIIII... (7511866 bases)
+pattern  (!7509409?"IFPICFPPCIFF")(!4)(IFPICFPPCIFP)
+template \0\1\1\1\1\2
+len(pattern + template) = 121
+succesful match of length 7511745
+e[0] = IIPIPCIIII... (7511729 bases)
+e[1] = PPPP (4 bases)
+e[2] = IFPICFPPCI... (12 bases)
+len(rna) = 1345
+```
+
+This and the next several instr4uctions multiple the `P` section by 4 again, ultimately growing it to 1048576 bases.
+
+After iteration 14, the result is 1137/7509409/1048731.
+
+```
+iteration = 15
+dna = IIPIPICCCC... (8559277 bases)
+pattern  (!7510430(!3))
+template IIPIPCCPIICIIPIPICICIIICCIICCIICICIICCCPIICIPCCPIICIPPCPIPPPIIC\0\1
+len(pattern + template) = 136
+succesful match of length 7510433
+e[0] = CCC (3 bases)
+e[1] = IIPIPICCII... (7510433 bases)
+len(rna) = 1345
+```
+
+Grabs the last 3 bases of the 23-length base at the front of the blue zone (which is `CCC`).  Duplicates them - creating a 26 base number ` = 66229665`.  Not clear what this is for.
+
+Also prepends the red zone with some code to run next.
+
+Result is 1064/7509409/1048734.
+
+### Gene table
+
+The previous section gave a pretty good understanding of the runtime behaviour of Fuun DNA.
+
+A mechanism that appeared several times was copying a section of 'code' from the Blue Zone to the Red Zone.
+
+The Gene Table has some suggestions about the structure of the Green Zone.
+
+![page42](imgs/page42-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCFCFCFCCCCCCCCCCCCCCCCCIIC.png)
+
+Each entry has what looks like an offset and a length.  The largest offset is `0x719633 = 7444019` which fits nicely inside the green zone.
+
+It seems reasonable to assume each offset is an offset into the green zone, and each length is the length of a block of code, or perhaps some constant data used by code, at that location.  
+
+Notably, this is just page 1 of 14.  But the first entry is suggestively named `AAA_geneTablePageNr`, and is `0x18 = 24` bases long, suggesting that if we overwrite the page number there, a different page will be rendered.  
+
+To try to get gene table page 2, we need to prefix our prefix page 42 prefix with `/(?"IFPICFPPCFFPP"!1283)(!24)/\0ICIIIIIIIIIIIIIIIIIIIIIP/`.  This is `IIP IFF C P IC C F P IC IC F P P IC IC IP CCIIIIIICICP IIC IIP IP IIICCP IIC IIC IP P P CFCCCCCCCCCCCCCCCCCCCCCIC IIC` = `IIPIFFCPICCFPICICFPPICICIPCCIIIIIICICPIICIIPIPIIICCPIICIICIPPPCFCCCCCCCCCCCCCCCCCCCCCICIIC`.
+
+
+Combining prefixes - we try:
+
+```bash
+> cargo run --release -- -l IIPIFFCPICCFPICICFPPICICIPCCIIIIIICICPIICIIPIPIIICCPIICIICIPPPCFCCCCCCCCCCCCCCCCCCCCCICIICIIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCFCFCFCCCCCCCCCCCCCCCCCIIC | more
+
+iteration = 0
+dna = IIPIFFCPIC... (7523224 bases)
+pattern  (?"IFPICFPPCFFPP"!1283)(!24)
+template \0ICIIIIIIIIIIIIIIIIIIIIIP
+len(pattern + template) = 90
+succesful match of length 15009
+e[0] = IIPIFFCPIC... (14985 bases)
+e[1] = IIIIIIIIII... (24 bases)
+len(rna) = 0
+
+iteration = 1
+dna = IIPIFFCPIC... (7523134 bases)
+pattern  (?"IFPCFFP")IIIIIIIIIIIIIIIIIIIIIII
+template \0ICICICIIIIIIIIIIIIIIIII
+len(pattern + template) = 74
+succesful match of length 14890
+e[0] = IIIPIPIIPC... (14867 bases)
+len(rna) = 0
+
+> cargo run --release -- IIPIFFCPICCFPICICFPPICICIPCCIIIIIICICPIICIIPIPIIICCPIICIICIPPPCFCCCCCCCCCCCCCCCCCCCCCICIICIIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCFCFCFCCCCCCCCCCCCCCCCCIIC 
+```
+
+
+
+_ TODO _
 
 ### Field-repairing Fuuns
 
 _ TODO _
 
-### Gene table
-
-_ TODO _
 
 ### Encodings
 

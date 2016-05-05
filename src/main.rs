@@ -26,13 +26,13 @@ fn main() {
     let log_dna = matches.opt_present("l");
     let outpng = "out.png";
     let mut out_file = matches.opt_str("o").unwrap_or(String::from(outpng));
-    let zero = "0";
+    let zero = "";
     let page = matches.opt_str("p").unwrap_or(String::from(zero)).parse::<u32>();
     let mut prefix = matches.free.into_iter().next().unwrap_or(String::new());
     if prefix.len() > 0 && out_file == outpng {
         out_file = prefix.clone() + ".png";
     }
-    if let Ok( p) = page {
+    if let Ok(p) = page {
         let mut num = String::from("CCCCCCCCCCCCCCCCCCCCCCC").into_bytes();
         {
             let mut p = p;

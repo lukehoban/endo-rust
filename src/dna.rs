@@ -406,6 +406,9 @@ pub fn execute(mut dna: Rope, logging: bool) -> Vec<String> {
                 println!("template {}", template_to_string(&t));
             }
             rna.extend(rna3.into_iter());
+            if logging {
+                println!("len(pattern + template) = {}", chars.index);
+            }
             (p, t, chars.index)
         };
         let dna_len = dna.len();
