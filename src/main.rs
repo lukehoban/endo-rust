@@ -15,6 +15,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
     opts.optflag("l", "log-dna", "log DNA processing");    
+    opts.optflag("t", "trace", "trace Fuun gene execution using RNA C*CC markers");    
     opts.optflag("i", "intermediate-rna", "render intermediate rna");
     opts.optopt("p", "page", "use prefix for rendering repair guide page #", "3");
     opts.optopt("g", "gene-table-page", "use prefix for rendering gene table page #", "3");
@@ -29,6 +30,8 @@ fn main() {
     
     let render_intermediates = matches.opt_present("i");
     let log_dna = matches.opt_present("l");
+    let tracing = matches.opt_present("t");
+    
     let page = matches.opt_str("p").unwrap_or(String::new()).parse::<u32>();
     let gene_table_page = matches.opt_str("g").unwrap_or(String::new()).parse::<u32>();
     let green_zone_section = matches.opt_str("z").map(|s| {
@@ -101,7 +104,7 @@ fn main() {
     
     
     // Convert DNA -> RNA
-    let rna = dna::execute(dna, log_dna);
+    let rna = dna::execute(dna, log_dna, tracing);
     println!("#RNA = {}", rna.len());
 
     // Convert RNA -> Image(s)

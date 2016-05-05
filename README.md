@@ -523,6 +523,7 @@ Here's a summary of default values for a handful of interesting sections:
 |----|------|------|-----|
 |`greenZoneStart`|`0`|`0`||
 |`doSelfCheck`|`88`|`1`|`F`|
+|`night-or-day`|`1295`|`1`|`P`|
 |`AAA_geneTablePageNr`|`1296`|`24`|`IIIIIIIIIIIIIIIIIIIIIIIP`|
 |`enableBioMorph`|`211299`|`1`|`F`|
 |`colorReset`|`820970`|`1`|`P`|
@@ -534,6 +535,19 @@ _TODO: Dissasemble the code sections?_
 _TODO: Enable integrity checks?_
 
 ### Field-repairing Fuuns
+
+The `Field Repairing Fuuns` page includes details about how to easily call the functions in the gene table.
+
+![page85](imgs/page85-IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPFCFCFCFCCCCCCCCCCCCCCCCIIC.png)
+
+Let's first run their example:
+
+```
+Copy 42: IIPIFFCPICCFPICICFPCICICIICIICIPPPCFCFCFCCCCCCCCCCCCCCCCCICIIC
+Copy false: IIPIFFCPICCFPICICFPCICICIICIICIPPPPIIC
+Activate gene 1234+50:
+IIPIFFCPICCFPICICFFFIIPIFFCPICCFPICICFFFIICIICIICIPPPCFCCFCFFCCFICCCFCFFFFFICIPPCPIIC
+```
 
 _ TODO _
 

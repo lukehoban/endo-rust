@@ -222,7 +222,7 @@ fn template(chars: &mut RopeCharIter) -> Option<(Vec<String>, Vec<TItem>)> {
     }
 }
 
-fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope, logging: bool) -> Rope {
+fn match_replace(p: Vec<PItem>, t: &Vec<TItem>, dna: Rope, logging: bool) -> Rope {
     let mut i = 0usize;
     let mut e = Vec::new();
     let mut c = Vec::new();
@@ -256,7 +256,7 @@ fn match_replace(p: Vec<PItem>, t: Vec<TItem>, dna: Rope, logging: bool) -> Rope
         }
         if failed {
             if logging { println!("failed match") }
-            return dna    
+            return dna 
         }
     }
     if logging {
@@ -302,20 +302,20 @@ fn env_get(e: &Vec<Rope>, i: usize) -> Rope  {
     } 
 }
 
-fn replace(t: Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
+fn replace(t: &Vec<TItem>, e: Vec<Rope>, dna: Rope) -> Rope {
     let mut ret = Rope::from("");
     let mut bases = String::new();
     for item in t {
         match item {
-            TItem::Base(c) => bases.push_str(&c.to_string()),
-            TItem::Reference(n, l) => {
+            &TItem::Base(c) => bases.push_str(&c.to_string()),
+            &TItem::Reference(n, l) => {
                 if bases.len() > 0 {
                     ret.push_str(&bases);
                     bases = String::new();
                 }
                 ret.push(protect(l, env_get(&e, n)))
             },
-            TItem::Length(n) => {
+            &TItem::Length(n) => {
                 if bases.len() > 0 {
                     ret.push_str(&bases);
                     bases = String::new();
@@ -374,21 +374,22 @@ fn dna_to_string(dna: &Rope) -> String {
    s
 }
 
-pub fn execute(mut dna: Rope, logging: bool) -> Vec<String> {
+pub fn execute(mut dna: Rope, logging: bool, tracing: bool) -> Vec<String> {
     let mut rna = Vec::new();
-    let mut iteration = -1  ;
+    let mut iteration = -1;
+    let mut indentation = String::from("");
     loop {
         iteration = iteration + 1;
         if iteration % 10000 == 0 {
             println!("iteration = {}", iteration);
-        
         }
         if logging {
             println!("");
             println!("iteration = {}", iteration);
             println!("dna = {}", dna_to_string(&dna));
         }
-        let (p, t, index) = {
+        let (p, t, index, new_rna) = {
+            let mut new_rna = Vec::new();
             let mut chars = rope_char_iter(&dna);
             let (rna2, p) = match pattern(&mut chars) {
                 None => return rna,
@@ -397,7 +398,9 @@ pub fn execute(mut dna: Rope, logging: bool) -> Vec<String> {
             if logging {
                 println!("pattern  {}", pattern_to_string(&p));
             }
-            rna.extend(rna2.into_iter());
+            for r in rna2 {
+                new_rna.push(r);
+            }
             let (rna3, t) = match template(&mut chars) {
                 None => return rna,
                 Some((rna3, t)) => (rna3, t)
@@ -405,14 +408,31 @@ pub fn execute(mut dna: Rope, logging: bool) -> Vec<String> {
             if logging {
                 println!("template {}", template_to_string(&t));
             }
-            rna.extend(rna3.into_iter());
+            for r in rna3 {
+                new_rna.push(r);
+            }
             if logging {
                 println!("len(pattern + template) = {}", chars.index);
             }
-            (p, t, chars.index)
+            (p, t, chars.index, new_rna)
         };
         let dna_len = dna.len();
-        dna = match_replace(p, t, dna.slice(index, dna_len), logging);
+        dna = match_replace(p, &t, dna.slice(index, dna_len), logging);
+        for r in new_rna {
+            if tracing && r.starts_with("C") {
+                match r.as_ref() {
+                    "CFPICFP" => {
+                        indentation.pop();
+                        println!("{:8}:{}Finished.", iteration, indentation);
+                    },
+                    _ => {
+                        println!("{:8}:{}Starting {}.", iteration, indentation, r);
+                        indentation = indentation + " ";
+                    }
+                }
+            }
+            rna.push(r);
+        }
         if logging {
             println!("len(rna) = {}", rna.len());
         }
