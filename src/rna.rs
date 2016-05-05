@@ -5,7 +5,7 @@ use std::path::Path;
 type Pos = (u32, u32);
 type RGB = (u8, u8, u8);
 type Transparency = u8;
-type Pix = Rgba<u8>;
+pub type Pix = Rgba<u8>;
 pub type Bitmap = ImageBuffer<Pix, Vec<u8>>; 
 
 enum Color {
@@ -18,16 +18,16 @@ type Bucket = Vec<Color>;
 #[derive(Clone, Copy, Debug)]
 enum Dir { N, E, S, W}
 
-const black: RGB = (0,0,0);
-const red: RGB = (255,0,0);
-const green: RGB = (0,255,0);
-const yellow: RGB = (255,255,0);
-const blue: RGB = (0,0,255);
-const magenta: RGB = (255,0,255);
-const cyan: RGB = (0,255,255);
-const white: RGB = (255,255,255);
-const transparent: Transparency = 0;
-const opaque: Transparency = 255;
+const BLACK: RGB = (0,0,0);
+const RED: RGB = (255,0,0);
+const GREEN: RGB = (0,255,0);
+const YELLOW: RGB = (255,255,0);
+const BLUE: RGB = (0,0,255);
+const MAGENTA: RGB = (255,0,255);
+const CYAN: RGB = (0,255,255);
+const WHITE: RGB = (255,255,255);
+const TRANSPARENT: Transparency = 0;
+const OPAQUE: Transparency = 255;
 
 struct State {
     bucket: Bucket,
@@ -91,8 +91,8 @@ impl State {
     fn line(&mut self) {
         let (x0, y0) = self.position;
         let (x1, y1) = self.mark;
-        let deltax = (x1 as i32 - x0 as i32);
-        let deltay = (y1 as i32 - y0 as i32);
+        let deltax = x1 as i32 - x0 as i32;
+        let deltay = y1 as i32 - y0 as i32;
         let d = cmp::max(deltax.abs(), deltay.abs()); 
         let c = if deltax * deltay <= 0 { 1 } else { 0 };
         let offset = (d - c) / 2;
@@ -114,17 +114,7 @@ impl State {
             self.fill(pos, old);
         }
     }
-    
-    fn fill_rec(&mut self, (x, y): Pos, initial: Pix) {
-        if self.get_pixel((x, y)) == initial {
-            self.set_pixel((x, y));
-            if x > 0 { self.fill((x-1, y), initial) }
-            if x < 599 { self.fill((x+1, y), initial) }
-            if y > 0 { self.fill((x, y-1), initial) }
-            if y < 599 { self.fill((x, y+ 1), initial) }
-        }
-    }
-    
+        
     fn fill(&mut self, p: Pos, initial: Pix) {
         let mut to_fill = vec![p];
         loop {
@@ -167,7 +157,7 @@ impl State {
         if self.bitmaps.len() < 2 { return }
         for x in 0..600 {
             for y in 0..600 {
-                let (r0, g0, b0, a0) = self.bitmaps[0].get_pixel(x, y).channels4();
+                let (_, _, _, a0) = self.bitmaps[0].get_pixel(x, y).channels4();
                 let (r1, g1, b1, a1) = self.bitmaps[1].get_pixel(x, y).channels4();
                 self.bitmaps[1].put_pixel(x, y, Rgba::from_channels(
                     (((r1 as u32) * (a0 as u32))/255) as u8,
@@ -217,9 +207,9 @@ impl State {
 #[test]
 fn current_pixel_1() {
     let mut state = State::new();
-    state.add_color(Color::A(transparent));
-    state.add_color(Color::A(opaque));
-    state.add_color(Color::A(opaque));
+    state.add_color(Color::A(TRANSPARENT));
+    state.add_color(Color::A(OPAQUE));
+    state.add_color(Color::A(OPAQUE));
     let pixel = state.current_pixel().channels4();
     assert_eq!((0, 0, 0, 170), pixel);
 }
@@ -227,9 +217,9 @@ fn current_pixel_1() {
 #[test]
 fn current_pixel_2() {
     let mut state = State::new();
-    state.add_color(Color::RGB(black));
-    state.add_color(Color::RGB(yellow));
-    state.add_color(Color::RGB(cyan));
+    state.add_color(Color::RGB(BLACK));
+    state.add_color(Color::RGB(YELLOW));
+    state.add_color(Color::RGB(CYAN));
     let pixel = state.current_pixel().channels4();
     assert_eq!((85, 170, 85, 255), pixel);
 }
@@ -237,9 +227,9 @@ fn current_pixel_2() {
 #[test]
 fn current_pixel_3() {
     let mut state = State::new();
-    state.add_color(Color::RGB(yellow));
-    state.add_color(Color::A(transparent));
-    state.add_color(Color::A(opaque));
+    state.add_color(Color::RGB(YELLOW));
+    state.add_color(Color::A(TRANSPARENT));
+    state.add_color(Color::A(OPAQUE));
     let pixel = state.current_pixel().channels4();
     assert_eq!((127, 127, 0, 127), pixel);
 }
@@ -247,12 +237,12 @@ fn current_pixel_3() {
 #[test]
 fn current_pixel_4() {
     let mut state = State::new();
-    for _ in 0..18 { state.add_color(Color::RGB(black)) }
-    for _ in 0..7 { state.add_color(Color::RGB(red)) }
-    for _ in 0..39 { state.add_color(Color::RGB(magenta)) }
-    for _ in 0..10 { state.add_color(Color::RGB(white)) }
-    for _ in 0..3 { state.add_color(Color::A(opaque)) }
-    for _ in 0..1 { state.add_color(Color::A(transparent)) }
+    for _ in 0..18 { state.add_color(Color::RGB(BLACK)) }
+    for _ in 0..7 { state.add_color(Color::RGB(RED)) }
+    for _ in 0..39 { state.add_color(Color::RGB(MAGENTA)) }
+    for _ in 0..10 { state.add_color(Color::RGB(WHITE)) }
+    for _ in 0..3 { state.add_color(Color::A(OPAQUE)) }
+    for _ in 0..1 { state.add_color(Color::A(TRANSPARENT)) }
     let pixel = state.current_pixel().channels4();
     assert_eq!((143, 25, 125, 191), pixel);
 }
@@ -267,16 +257,16 @@ pub fn build(rna: Vec<String>, out_file: &str, render_intermediate: bool) {
             state.bitmaps[0].save(&Path::new(&s)).unwrap();
         }
         match r.as_ref() {
-            "PIPIIIC" => state.add_color(Color::RGB(black)),
-            "PIPIIIP" => state.add_color(Color::RGB(red)),
-            "PIPIICC" => state.add_color(Color::RGB(green)),
-            "PIPIICF" => state.add_color(Color::RGB(yellow)),
-            "PIPIICP" => state.add_color(Color::RGB(blue)),
-            "PIPIIFC" => state.add_color(Color::RGB(magenta)),
-            "PIPIIFF" => state.add_color(Color::RGB(cyan)),
-            "PIPIIPC" => state.add_color(Color::RGB(white)),
-            "PIPIIPF" => state.add_color(Color::A(transparent)),
-            "PIPIIPP" => state.add_color(Color::A(opaque)),
+            "PIPIIIC" => state.add_color(Color::RGB(BLACK)),
+            "PIPIIIP" => state.add_color(Color::RGB(RED)),
+            "PIPIICC" => state.add_color(Color::RGB(GREEN)),
+            "PIPIICF" => state.add_color(Color::RGB(YELLOW)),
+            "PIPIICP" => state.add_color(Color::RGB(BLUE)),
+            "PIPIIFC" => state.add_color(Color::RGB(MAGENTA)),
+            "PIPIIFF" => state.add_color(Color::RGB(CYAN)),
+            "PIPIIPC" => state.add_color(Color::RGB(WHITE)),
+            "PIPIIPF" => state.add_color(Color::A(TRANSPARENT)),
+            "PIPIIPP" => state.add_color(Color::A(OPAQUE)),
             "PIIPICP" => state.bucket.clear(),
             "PIIIIIP" => state.move_dir(),
             "PCCCCCP" => state.turn_counterclockwise(),

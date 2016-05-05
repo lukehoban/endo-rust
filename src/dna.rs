@@ -289,7 +289,7 @@ fn search(i: usize, s: &str, dna: &Rope) -> Option<usize> {
         n = n + 1;
         match iter.next() {
             None => return None,
-            Some(c) => continue
+            Some(_) => continue
         }
     }
 }
