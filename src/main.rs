@@ -16,7 +16,8 @@ fn main() {
     let mut opts = Options::new();
     opts.optflag("l", "log-dna", "log DNA processing");    
     opts.optflag("i", "intermediate-rna", "render intermediate rna");
-    opts.optopt("p", "page", "set output file name", "3");
+    opts.optopt("p", "page", "use prefix for rendering repair guide page #", "3");
+    opts.optopt("g", "gene-table-page", "use prefix for rendering gene table page #", "3");
     opts.optopt("o", "out", "set output file name", "out.png");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
@@ -28,11 +29,11 @@ fn main() {
     let mut out_file = matches.opt_str("o").unwrap_or(String::from(outpng));
     let zero = "";
     let page = matches.opt_str("p").unwrap_or(String::from(zero)).parse::<u32>();
+    let gene_table_page = matches.opt_str("g").unwrap_or(String::from(zero)).parse::<u32>();
     let mut prefix = matches.free.into_iter().next().unwrap_or(String::new());
     if prefix.len() > 0 && out_file == outpng {
         out_file = prefix.clone() + ".png";
-    }
-    if let Ok(p) = page {
+    } else if let Ok(p) = page {
         let mut num = String::from("CCCCCCCCCCCCCCCCCCCCCCC").into_bytes();
         {
             let mut p = p;
@@ -47,6 +48,21 @@ fn main() {
         }
         prefix = format!("IIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPP{}IIC", String::from_utf8(num).unwrap());
         out_file = format!("page{}-{}.png", p, prefix);
+    } else if let Ok(g) = gene_table_page {
+        let mut num = String::from("CCCCCCCCCCCCCCCCCCCCCCCIC").into_bytes();
+        {
+            let mut p = g - 1;
+            let mut i = 0;
+            while p > 0 {
+                if p % 2 == 1 {
+                    num[i] = b'F';
+                }
+                p = p / 2;
+                i += 1;
+            }
+        }
+        prefix = format!("IIPIFFCPICCFPICICFPPICICIPCCIIIIIICICPIICIIPIPIIICCPIICIICIPPP{}IICIIPIFFCPICFPPICIICCCCCCCCCCCCCCCCCCCCCCCCIICIPPPCFCFCFCCCCCCCCCCCCCCCCCIIC", String::from_utf8(num).unwrap());
+        out_file = format!("genetable{}-{}.png", g, prefix);
     }
     
     let mut f = File::open("endo.dna").unwrap();
