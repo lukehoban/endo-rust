@@ -365,7 +365,7 @@ fn asnat(mut n: usize) -> Rope {
     }
 }
 
-fn dna_to_string(dna: &Rope) -> String {
+pub fn dna_to_string(dna: &Rope) -> String {
    let mut s = rope_char_iter(dna).take(10).collect::<String>();
    if dna.len() > 10 {
        s = s + "...";

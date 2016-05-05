@@ -4,6 +4,7 @@ extern crate getopts;
 
 mod dna;
 mod rna;
+mod gene;
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -16,6 +17,7 @@ fn main() {
     let mut opts = Options::new();
     opts.optflag("l", "log-dna", "log DNA processing");    
     opts.optflag("t", "trace", "trace Fuun gene execution using RNA C*CC markers");    
+    opts.optflag("x", "gene-table", "render the gene table contents");    
     opts.optflag("i", "intermediate-rna", "render intermediate rna");
     opts.optopt("p", "page", "use prefix for rendering repair guide page #", "3");
     opts.optopt("g", "gene-table-page", "use prefix for rendering gene table page #", "3");
@@ -31,6 +33,7 @@ fn main() {
     let render_intermediates = matches.opt_present("i");
     let log_dna = matches.opt_present("l");
     let tracing = matches.opt_present("t");
+    let show_gene_table = matches.opt_present("x");
     
     let page = matches.opt_str("p").unwrap_or(String::new()).parse::<u32>();
     let gene_table_page = matches.opt_str("g").unwrap_or(String::new()).parse::<u32>();
@@ -90,6 +93,15 @@ fn main() {
     let mut s = String::new();
     let _ = f.read_to_string(&mut s); 
     let endo = Rope::from(&s);
+
+    if show_gene_table {
+        println!("*** Gene Table ***");
+        for gene in gene::gene_table().iter() {
+            let bases = endo.clone().slice(13615 + gene.offset, 13615 + gene.offset + gene.length);
+            println!("{:30} [{:8}:{:8}]: {}", gene.name, gene.offset, gene.length, dna::dna_to_string(&bases));
+        }    
+        println!("");
+    }
     
     if let Some((offset, length)) = green_zone_section {
         // Green Zone starts at 13616
@@ -101,7 +113,6 @@ fn main() {
     // Prepare DNA from Endo and prefix
     let mut dna = Rope::from(prefix);
     dna.push(endo);
-    
     
     // Convert DNA -> RNA
     let rna = dna::execute(dna, log_dna, tracing);

@@ -529,10 +529,46 @@ Here's a summary of default values for a handful of interesting sections:
 |`colorReset`|`820970`|`1`|`P`|
 |`blueZoneState`|`7509409`|`0`||
 
-
 _TODO: Dissasemble the code sections?_
 
 _TODO: Enable integrity checks?_
+
+### RNA 'morphing' codes
+
+The `Undocumented RNA` page mentions a few things:
+
+* There are "abnormal RNA" which are generated but ignored by RNA -> Image conversion
+* `CFPICFP` in particular indicates "a small part of the morphing proces is done"
+* Other codes, all starting with `C` indicate the start of a morphing process.
+
+If we print out tracing information when each of these codes is emitted, we see they form a call-graph.
+
+```
+>cargo run --release -- -t  | more
+       1:Starting CCCCPIC.
+       2: Starting CIPIICC.
+      85: Finished.
+      88: Starting CPPCPPC.
+     132:  Starting CCIIPIC.
+     136:   Starting CCPPCPC.
+     173:   Finished.
+     176:   Starting CICCIPC.
+     184:    Starting CCPPCPC.
+     221:    Finished.
+...
+```
+
+Each function appears to have a unique code that is used to reference it. But the same function can be called multiple times, like the `CCPPCPC` function called twice above - taking 27 iterations to run each time. 
+
+There's no obivous mapping of these codes to the functions in the Gene table.  But if we look up a gene like `init`, we see that it's first 10 bases are the  RNA sequence to generate `CIPIICC`, which is the second function executed in the trace above.
+
+```
+>cargo run --release -- -z 0x23ca0e:0x000a0
+Green zone at offset 2345486 of length 24:
+IIICIPIICC
+``` 
+
+So we can map each section to it's code by looking up bases 3..10 at it's offset.
 
 ### Field-repairing Fuuns
 
@@ -551,12 +587,7 @@ IIPIFFCPICCFPICICFFFIIPIFFCPICCFPICICFFFIICIICIICIPPPCFCCFCFFCCFICCCFCFFFFFICIPP
 
 _ TODO _
 
-
 ### Encodings
-
-_ TODO _
-
-### RNA 'morphing' codes
 
 _ TODO _
 
