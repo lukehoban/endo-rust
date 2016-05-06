@@ -96,7 +96,7 @@ fn main() {
 
     if show_gene_table {
         println!("*** Gene Table ***");
-        for gene in gene::gene_table().iter() {
+        for gene in gene::gene_table(&endo).iter() {
             let bases = endo.clone().slice(13615 + gene.offset, 13615 + gene.offset + gene.length);
             println!("{:30} [{:8}:{:8}]: {}", gene.name, gene.offset, gene.length, dna::dna_to_string(&bases));
         }    
