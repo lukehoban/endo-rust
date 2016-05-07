@@ -5,15 +5,17 @@ The task is described in [Endo.pdf](Endo.pdf).
 
 ## Components
 
+The DNA and RNA processing is implemented in Rust.
+
 ### DNA -> RNA
 
-In `src\dna.rs` there is an implementation of the DNA->RNA processor.
+In [dna.rs](src\dna.rs) there is an implementation of the DNA->RNA processor.
 
-This uses a rope data structure from the `xi-editor` project.  A copy of the crate is in `rope`.
+This uses a rope data structure from the [xi-editor](https://github.com/google/xi-editor/) project.  Since that module is not yet published indpendently, a copy of the crate is in [rope](src/rope).
 
 ### RNA -> Image
 
-In `src\rna.rs` there is an implementation of the RNA renderer.
+In [rna.rs](src\rna.rs) there is an implementation of the RNA renderer.
 
 This generates a full `.png` by default, but can render intermediate steps in the rendering with the `-i` flag.
 
